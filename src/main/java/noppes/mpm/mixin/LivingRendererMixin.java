@@ -32,6 +32,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import noppes.mpm.ModelData;
 import noppes.mpm.client.RenderEvent;
+import noppes.mpm.client.model.animation.AnimationHandler;
 import noppes.mpm.constants.BodyPart;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -122,5 +123,18 @@ public class LivingRendererMixin<T extends LivingEntity, M extends EntityModel<T
             model.hat.visible = this.hatVisible;
         }
     }
-}
 
+    @Inject(
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/model/EntityModel;renderToBuffer(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;III)V"
+        ),
+        method = {"render"}
+    )
+    private void syncPlayerSkinLayers(T entity, float p_115309_, float p_115310_, PoseStack p_115311_, MultiBufferSource p_115312_, int p_115313_, CallbackInfo cb) {
+        LivingEntityRenderer r = (LivingEntityRenderer)(Object)this;
+        if (entity instanceof AbstractClientPlayer && r.getModel() instanceof PlayerModel) {
+            AnimationHandler.syncPlayerSkinLayers((PlayerModel)r.getModel());
+        }
+    }
+}

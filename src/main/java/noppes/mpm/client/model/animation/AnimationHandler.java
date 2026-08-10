@@ -84,14 +84,26 @@ public class AnimationHandler {
             bipedModel.body.xRot = 0.5f / data.getPartConfig((EnumParts)EnumParts.BODY).scaleY;
         }
         if (bipedModel instanceof PlayerModel) {
-            PlayerModel playerModel = (PlayerModel)bipedModel;
-            playerModel.leftPants.copyFrom(playerModel.leftLeg);
-            playerModel.rightPants.copyFrom(playerModel.rightLeg);
-            playerModel.leftSleeve.copyFrom(playerModel.leftArm);
-            playerModel.rightSleeve.copyFrom(playerModel.rightArm);
-            playerModel.jacket.copyFrom(playerModel.body);
+            AnimationHandler.syncPlayerSkinLayers((PlayerModel)bipedModel);
+        } else {
+            bipedModel.hat.copyFrom(bipedModel.head);
         }
-        bipedModel.hat.copyFrom(bipedModel.head);
+    }
+
+    /**
+     * Keep the skin overlay parts on the same final pose as their base parts.
+     *
+     * The vanilla player model performs this copy during setupAnim, but MPM
+     * animations run around that method and can change the base pose afterward.
+     * This helper is also called immediately before rendering as a final guard.
+     */
+    public static void syncPlayerSkinLayers(PlayerModel playerModel) {
+        playerModel.hat.copyFrom(playerModel.head);
+        playerModel.leftPants.copyFrom(playerModel.leftLeg);
+        playerModel.rightPants.copyFrom(playerModel.rightLeg);
+        playerModel.leftSleeve.copyFrom(playerModel.leftArm);
+        playerModel.rightSleeve.copyFrom(playerModel.rightArm);
+        playerModel.jacket.copyFrom(playerModel.body);
     }
 
     public static void addAnimation(EnumAnimation enumAnimation, AnimationBase animationBase) {
@@ -152,4 +164,3 @@ public class AnimationHandler {
         });
     }
 }
-
