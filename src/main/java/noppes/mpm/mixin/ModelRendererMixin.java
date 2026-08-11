@@ -52,7 +52,7 @@ public class ModelRendererMixin {
 
     private ModelPartConfig getMpmconfig() {
         // First-person arms can render before ClientProxy has discovered both
-        // vanilla armor layers.  Do not dereference those delayed renderers
+        // vanilla armor layers. Do not dereference those delayed renderers
         // during client startup.
         if (ClientProxy.data == null || ClientProxy.playerModel == null || ClientProxy.armorLayer == null || ClientProxy.armorLayerSlim == null) {
             return null;

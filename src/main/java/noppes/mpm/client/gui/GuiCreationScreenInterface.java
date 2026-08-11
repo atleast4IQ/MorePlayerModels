@@ -100,17 +100,19 @@ ISliderListener {
     @Override
     public void render(GuiGraphics graphics, int x, int y, float f) {
         super.render(graphics, x, y, f);
-        LivingEntity preview = this.entity = this.playerdata.getEntity((Player)this.minecraft.player);
-        if (preview == null) {
-            preview = this.player;
+        LivingEntity entity = this.entity = this.playerdata.getEntity((Player)this.minecraft.player);
+        if (entity == null) {
+            entity = this.player;
         } else {
-            // The entity list is a selector, so its preview must render the
-            // selected entity itself.  Copy only the current player state
-            // needed for pose/equipment animation into that preview entity.
-            MPMEntityUtil.copy((LivingEntity)this.player, preview);
+            // This is intentionally the original MPM creation-screen route:
+            // entity selection affects the player in-game, but the editor
+            // preview remains the player model so its armor layer copies the
+            // player pose. Rendering a selected mob here mixes its armor
+            // model with the player texture and causes the visible clipping.
+            MPMEntityUtil.copy((LivingEntity)this.minecraft.player, (LivingEntity)this.player);
         }
         if (!(this.getSubGui() instanceof GuiTextureSelection)) {
-            this.drawEntity(graphics, preview, this.xOffset + 200, 200, 2.0f, (int)(-rotation * 360.0f) + 180, this.guiLeft, this.guiTop);
+            this.drawEntity(graphics, (LivingEntity)this.player, this.xOffset + 200, 200, 2.0f, (int)(-rotation * 360.0f) + 180, this.guiLeft, this.guiTop);
         }
     }
 

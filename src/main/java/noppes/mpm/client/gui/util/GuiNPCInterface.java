@@ -46,7 +46,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import noppes.mpm.client.gui.util.GuiCustomScroll;
 import noppes.mpm.client.gui.util.GuiNpcButton;
 import noppes.mpm.client.gui.util.GuiNpcLabel;
@@ -54,7 +53,6 @@ import noppes.mpm.client.gui.util.GuiNpcSlider;
 import noppes.mpm.client.gui.util.GuiNpcTextField;
 import noppes.mpm.client.gui.util.ISubGuiListener;
 import noppes.mpm.client.RenderEvent;
-import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -345,14 +343,10 @@ extends Screen {
     }
 
     public void drawEntity(GuiGraphics graphics, LivingEntity entity, int x, int y, float zoomed, int rotation, int guiLeft, int guiTop) {
-        if (!(entity instanceof Player)) {
-            this.drawEntityTurntable(graphics, entity, x, y, zoomed, rotation, guiLeft, guiTop);
-            return;
-        }
-        // This screen supplies the original MPM centre coordinates.  The
-        // vanilla 1.21 inventory helper anchors entities differently, which
-        // puts this legacy avatar below its panel.  Preserve the original
-        // transform so the avatar and the rotation slider retain their layout.
+        // MPM's original preview path rotates the complete rendered entity on
+        // one pose stack. This is essential for non-player avatars: rendering
+        // them through the 1.21 inventory turntable leaves their armor layer
+        // in a different rotation space from the avatar body.
         float bodyRot = entity.yBodyRot;
         float yaw = entity.getYRot();
         float pitch = entity.getXRot();
@@ -365,63 +359,40 @@ extends Screen {
         final float previewScale = scale * zoomed;
         float mouseOffsetX = (float)(guiLeft + x) - (float)this.mouseX;
         float mouseOffsetY = (float)(guiTop + y) - 50.0f * scale * zoomed - (float)this.mouseY;
-        RenderEvent.renderGuiPreview(() -> {
-            entity.yBodyRot = 0.0f;
-            entity.setYRot((float)Math.atan(mouseOffsetX / 80.0f) * 40.0f + (float)rotation);
-            entity.setXRot(-((float)Math.atan(mouseOffsetY / 40.0f)) * 20.0f);
-            entity.yHeadRot = 0.0f;
-            entity.yHeadRotO = 0.0f;
-            PoseStack poseStack = graphics.pose();
-            poseStack.pushPose();
-            poseStack.translate(guiLeft + x, guiTop + y, 1050.0f);
-            poseStack.mulPose(new Matrix4f().scaling(1.0f, 1.0f, -1.0f));
-            poseStack.translate(0.0f, 0.0f, 1000.0f);
-            poseStack.scale(30.0f * previewScale, 30.0f * previewScale, 1.0f);
-            // This is the original MPM root-stack orientation.  The former
-            // port changed the two Y-axis rotations into X-axis rotations,
-            // which flips the complete avatar upside down.
-            poseStack.mulPose(Axis.YP.rotationDegrees(180.0f));
-            poseStack.mulPose(Axis.ZP.rotationDegrees(180.0f));
-            poseStack.mulPose(Axis.YN.rotationDegrees(rotation));
-            Lighting.setupForEntityInInventory();
-            EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-            dispatcher.overrideCameraOrientation(Axis.YN.rotationDegrees(180.0f));
-            dispatcher.setRenderShadow(false);
-            RenderSystem.runAsFancy(() -> dispatcher.render(entity, 0.0, 0.0, 0.0, 0.0f, 1.0f, poseStack, graphics.bufferSource(), 0xF000F0));
-            graphics.flush();
-            dispatcher.setRenderShadow(true);
-            Lighting.setupFor3DItems();
-            poseStack.popPose();
-        });
+        entity.yBodyRot = 0.0f;
+        entity.setYRot((float)Math.atan(mouseOffsetX / 80.0f) * 40.0f + (float)rotation);
+        entity.setXRot(-((float)Math.atan(mouseOffsetY / 40.0f)) * 20.0f);
+        entity.yHeadRot = 0.0f;
+        entity.yHeadRotO = 0.0f;
+        PoseStack poseStack = graphics.pose();
+        poseStack.pushPose();
+        float renderScale = 30.0f * previewScale;
+        // Vanilla 1.20 and 1.21 both scale all three model axes here. The
+        // old port kept Z at -1 while scaling X/Y by the preview zoom, which
+        // collapsed the depth gap between the player skin and armor and made
+        // them occlude each other as the preview rotated.
+        poseStack.translate(guiLeft + x, guiTop + y, 50.0f);
+        poseStack.scale(renderScale, renderScale, -renderScale);
+        // This is the original MPM root-stack orientation.  The former
+        // port changed the two Y-axis rotations into X-axis rotations,
+        // which flips the complete avatar upside down.
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0f));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(180.0f));
+        poseStack.mulPose(Axis.YN.rotationDegrees(rotation));
+        Lighting.setupForEntityInInventory();
+        EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
+        dispatcher.overrideCameraOrientation(Axis.YN.rotationDegrees(180.0f));
+        dispatcher.setRenderShadow(false);
+        RenderSystem.runAsFancy(() -> dispatcher.render(entity, 0.0, 0.0, 0.0, 0.0f, 1.0f, poseStack, graphics.bufferSource(), 0xF000F0));
+        graphics.flush();
+        dispatcher.setRenderShadow(true);
+        poseStack.popPose();
+        Lighting.setupFor3DItems();
         entity.yBodyRot = bodyRot;
         entity.setYRot(yaw);
         entity.setXRot(pitch);
         entity.yHeadRotO = headRotO;
         entity.yHeadRot = headRot;
-    }
-
-    /** Uses the native 1.21 turntable for mobs; the player transform flips quadrupeds. */
-    private void drawEntityTurntable(GuiGraphics graphics, LivingEntity entity, int x, int y, float zoomed, int rotation, int guiLeft, int guiTop) {
-        float entityScale = entity.getScale();
-        float sizeMultiplier = entity.getBbHeight() > 2.4f ? 2.0f / entity.getBbHeight() : 1.0f;
-        int renderScale = Math.round(30.0f * sizeMultiplier * zoomed);
-        int width = Math.max(80, renderScale * 2);
-        int height = Math.max(120, renderScale * 3);
-        int left = guiLeft + x - width / 2;
-        int top = guiTop + y - height / 2;
-        float turntableYaw = ((float)rotation - 180.0f) / 20.0f;
-        RenderEvent.renderGuiPreview(() -> InventoryScreen.renderEntityInInventoryFollowsAngle(
-                graphics,
-                left,
-                top,
-                left + width,
-                top + height,
-                Math.round((float)renderScale / entityScale),
-                0.0f,
-                turntableYaw,
-                0.0f,
-                entity
-        ));
     }
 
     /**

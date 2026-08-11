@@ -42,13 +42,6 @@ import noppes.mpm.shared.util.NopVector3f;
 
 public class LayerParts
 extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
-    /**
-     * The 1.20.1 MPM part definitions sit a fraction above the 1.21.1 player
-     * model anchor.  This is model-space Y; the entity renderer flips Y, so a
-     * positive value moves an addon downward on screen.
-     */
-    private static final float ADDON_ANCHOR_Y_OFFSET = 0.02f;
-
     public LayerParts(PlayerRenderer render) {
         super((RenderLayerParent)render);
     }
@@ -83,7 +76,6 @@ extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
         if (partc.bodyPart == BodyPart.BODY) {
             model.body.translateAndRotate(mStack);
         }
-        mStack.translate(0.0f, ADDON_ANCHOR_Y_OFFSET, 0.0f);
         if (partc.bodyPart == BodyPart.LEGS) {
             rmodelPart = partc.getPart("right_leg");
             lmodelPart = partc.getPart("left_leg");
