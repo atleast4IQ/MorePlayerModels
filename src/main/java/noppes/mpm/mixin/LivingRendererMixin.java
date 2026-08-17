@@ -23,6 +23,7 @@ package noppes.mpm.mixin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.PlayerModel;
+import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -31,9 +32,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import noppes.mpm.ModelData;
+import noppes.mpm.MorePlayerModels;
 import noppes.mpm.client.RenderEvent;
 import noppes.mpm.client.model.animation.AnimationHandler;
 import noppes.mpm.constants.BodyPart;
+import noppes.mpm.constants.EnumParts;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -54,6 +57,7 @@ public class LivingRendererMixin<T extends LivingEntity, M extends EntityModel<T
     private boolean jacketVisible;
     private boolean headVisible;
     private boolean hatVisible;
+    private ModelPartState[] mpmPartStates;
 
     @Inject(at={@At(value="HEAD")}, method={"getRenderType"}, cancellable=true)
     private void getModelName(T livingEntity, boolean p_230496_2_, boolean p_230496_3_, boolean p_230496_4_, CallbackInfoReturnable<RenderType> cir) {
@@ -109,6 +113,7 @@ public class LivingRendererMixin<T extends LivingEntity, M extends EntityModel<T
         LivingEntityRenderer r = (LivingEntityRenderer)(Object)this;
         if (entity instanceof AbstractClientPlayer && r.getModel() instanceof PlayerModel) {
             PlayerModel model = (PlayerModel)r.getModel();
+            this.restoreMpmTransforms();
             model.leftLeg.visible = this.leftLegVisible;
             model.rightLeg.visible = this.rightLegVisible;
             model.leftArm.visible = this.leftArmVisible;
@@ -127,6 +132,41 @@ public class LivingRendererMixin<T extends LivingEntity, M extends EntityModel<T
     @Inject(
         at = @At(
             value = "INVOKE",
+            target = "Lnet/minecraft/client/model/EntityModel;setupAnim(Lnet/minecraft/world/entity/Entity;FFFFF)V",
+            shift = At.Shift.AFTER
+        ),
+        method = {"render"}
+    )
+    private void applyMpmTransforms(T entity, float p_115309_, float p_115310_, PoseStack p_115311_, MultiBufferSource p_115312_, int p_115313_, CallbackInfo cb) {
+        LivingEntityRenderer r = (LivingEntityRenderer)(Object)this;
+        if (MorePlayerModels.Compatibility || !(entity instanceof AbstractClientPlayer) || !(r.getModel() instanceof PlayerModel)) {
+            return;
+        }
+
+        PlayerModel model = (PlayerModel)r.getModel();
+        ModelData data = ModelData.get((Player)entity);
+        ModelPart[] parts = new ModelPart[]{
+            model.head, model.body, model.leftArm, model.rightArm, model.leftLeg, model.rightLeg,
+            model.hat, model.jacket, model.leftSleeve, model.rightSleeve, model.leftPants, model.rightPants
+        };
+        EnumParts[] types = new EnumParts[]{EnumParts.HEAD, EnumParts.BODY, EnumParts.ARM_LEFT, EnumParts.ARM_RIGHT, EnumParts.LEG_LEFT, EnumParts.LEG_RIGHT};
+        this.mpmPartStates = new ModelPartState[parts.length];
+        for (int i = 0; i < parts.length; ++i) {
+            ModelPart part = parts[i];
+            this.mpmPartStates[i] = ModelPartState.capture(part);
+            if (i < types.length) {
+                var config = data.getPartConfig(types[i]);
+                part.x += config.transX * 16.0f;
+                part.y += config.transY * 16.0f;
+                part.z += config.transZ * 16.0f;
+            }
+        }
+        AnimationHandler.syncPlayerSkinLayers(model);
+    }
+
+    @Inject(
+        at = @At(
+            value = "INVOKE",
             target = "Lnet/minecraft/client/model/EntityModel;renderToBuffer(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;III)V"
         ),
         method = {"render"}
@@ -135,6 +175,28 @@ public class LivingRendererMixin<T extends LivingEntity, M extends EntityModel<T
         LivingEntityRenderer r = (LivingEntityRenderer)(Object)this;
         if (entity instanceof AbstractClientPlayer && r.getModel() instanceof PlayerModel) {
             AnimationHandler.syncPlayerSkinLayers((PlayerModel)r.getModel());
+        }
+    }
+
+    private void restoreMpmTransforms() {
+        if (this.mpmPartStates == null) {
+            return;
+        }
+        for (ModelPartState state : this.mpmPartStates) {
+            state.restore();
+        }
+        this.mpmPartStates = null;
+    }
+
+    private record ModelPartState(ModelPart part, float x, float y, float z) {
+        private static ModelPartState capture(ModelPart part) {
+            return new ModelPartState(part, part.x, part.y, part.z);
+        }
+
+        private void restore() {
+            this.part.x = this.x;
+            this.part.y = this.y;
+            this.part.z = this.z;
         }
     }
 }
