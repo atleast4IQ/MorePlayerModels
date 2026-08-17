@@ -51,29 +51,34 @@ public class ModelRendererMixin {
     }
 
     private ModelPartConfig getMpmconfig() {
-        // First-person arms can render before ClientProxy has discovered both
-        // vanilla armor layers. Do not dereference those delayed renderers
-        // during client startup.
-        if (ClientProxy.data == null || ClientProxy.playerModel == null || ClientProxy.armorLayer == null || ClientProxy.armorLayerSlim == null) {
+        // Armor layers are discovered lazily.  The base player model must not
+        // depend on both variants being present: integrations can already use
+        // MPM's transforms for their worn models while this early return leaves
+        // the actual player at vanilla size.
+        if (ClientProxy.data == null || ClientProxy.playerModel == null) {
             return null;
         }
         ModelPart model = (ModelPart)(Object)this;
-        if (model == ClientProxy.playerModel.body || model == ClientProxy.playerModel.jacket || model == ((HumanoidModel)ClientProxy.armorLayer.getOuter()).body || model == ((HumanoidModel)ClientProxy.armorLayerSlim.getOuter()).body || model == ((HumanoidModel)ClientProxy.armorLayer.getInner()).body || model == ((HumanoidModel)ClientProxy.armorLayerSlim.getInner()).body) {
+        HumanoidModel armorOuter = ClientProxy.armorLayer == null ? null : (HumanoidModel)ClientProxy.armorLayer.getOuter();
+        HumanoidModel armorInner = ClientProxy.armorLayer == null ? null : (HumanoidModel)ClientProxy.armorLayer.getInner();
+        HumanoidModel slimArmorOuter = ClientProxy.armorLayerSlim == null ? null : (HumanoidModel)ClientProxy.armorLayerSlim.getOuter();
+        HumanoidModel slimArmorInner = ClientProxy.armorLayerSlim == null ? null : (HumanoidModel)ClientProxy.armorLayerSlim.getInner();
+        if (model == ClientProxy.playerModel.body || model == ClientProxy.playerModel.jacket || armorOuter != null && model == armorOuter.body || slimArmorOuter != null && model == slimArmorOuter.body || armorInner != null && model == armorInner.body || slimArmorInner != null && model == slimArmorInner.body) {
             return ClientProxy.data.getPartConfig(EnumParts.BODY);
         }
-        if (model == ClientProxy.playerModel.head || model == ClientProxy.playerModel.hat || model == ((HumanoidModel)ClientProxy.armorLayer.getOuter()).head || model == ((HumanoidModel)ClientProxy.armorLayerSlim.getOuter()).head) {
+        if (model == ClientProxy.playerModel.head || model == ClientProxy.playerModel.hat || armorOuter != null && model == armorOuter.head || slimArmorOuter != null && model == slimArmorOuter.head) {
             return ClientProxy.data.getPartConfig(EnumParts.HEAD);
         }
-        if (model == ClientProxy.playerModel.leftLeg || model == ClientProxy.playerModel.leftPants || model == ((HumanoidModel)ClientProxy.armorLayer.getOuter()).leftLeg || model == ((HumanoidModel)ClientProxy.armorLayer.getInner()).leftLeg || model == ((HumanoidModel)ClientProxy.armorLayerSlim.getOuter()).leftLeg || model == ((HumanoidModel)ClientProxy.armorLayerSlim.getInner()).leftLeg) {
+        if (model == ClientProxy.playerModel.leftLeg || model == ClientProxy.playerModel.leftPants || armorOuter != null && model == armorOuter.leftLeg || armorInner != null && model == armorInner.leftLeg || slimArmorOuter != null && model == slimArmorOuter.leftLeg || slimArmorInner != null && model == slimArmorInner.leftLeg) {
             return ClientProxy.data.getPartConfig(EnumParts.LEG_LEFT);
         }
-        if (model == ClientProxy.playerModel.rightLeg || model == ClientProxy.playerModel.rightPants || model == ((HumanoidModel)ClientProxy.armorLayer.getOuter()).rightLeg || model == ((HumanoidModel)ClientProxy.armorLayer.getInner()).rightLeg || model == ((HumanoidModel)ClientProxy.armorLayerSlim.getOuter()).rightLeg || model == ((HumanoidModel)ClientProxy.armorLayerSlim.getInner()).rightLeg) {
+        if (model == ClientProxy.playerModel.rightLeg || model == ClientProxy.playerModel.rightPants || armorOuter != null && model == armorOuter.rightLeg || armorInner != null && model == armorInner.rightLeg || slimArmorOuter != null && model == slimArmorOuter.rightLeg || slimArmorInner != null && model == slimArmorInner.rightLeg) {
             return ClientProxy.data.getPartConfig(EnumParts.LEG_RIGHT);
         }
-        if (model == ClientProxy.playerModel.leftArm || model == ClientProxy.playerModel.leftSleeve || model == ((HumanoidModel)ClientProxy.armorLayer.getOuter()).leftArm || model == ((HumanoidModel)ClientProxy.armorLayerSlim.getOuter()).leftArm) {
+        if (model == ClientProxy.playerModel.leftArm || model == ClientProxy.playerModel.leftSleeve || armorOuter != null && model == armorOuter.leftArm || slimArmorOuter != null && model == slimArmorOuter.leftArm) {
             return ClientProxy.data.getPartConfig(EnumParts.ARM_LEFT);
         }
-        if (model == ClientProxy.playerModel.rightArm || model == ClientProxy.playerModel.rightSleeve || model == ((HumanoidModel)ClientProxy.armorLayer.getOuter()).rightArm || model == ((HumanoidModel)ClientProxy.armorLayerSlim.getOuter()).rightArm) {
+        if (model == ClientProxy.playerModel.rightArm || model == ClientProxy.playerModel.rightSleeve || armorOuter != null && model == armorOuter.rightArm || slimArmorOuter != null && model == slimArmorOuter.rightArm) {
             return ClientProxy.data.getPartConfig(EnumParts.ARM_RIGHT);
         }
         return null;

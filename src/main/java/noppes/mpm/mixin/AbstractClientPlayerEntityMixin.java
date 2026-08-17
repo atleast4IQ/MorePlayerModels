@@ -18,6 +18,7 @@ package noppes.mpm.mixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -59,5 +60,27 @@ public class AbstractClientPlayerEntityMixin {
             cir.cancel();
         }
     }
-}
 
+    /**
+     * In 1.21.1 the player skin is exposed as a {@link PlayerSkin} record.  A
+     * renderer-specific texture override does not update this record, so mods
+     * which correctly ask the player for its skin would continue to receive the
+     * Mojang profile texture.  Preserve the profile's cape, elytra, model, and
+     * security data while replacing only the texture after MPM has loaded one.
+     */
+    @Inject(at={@At(value="RETURN")}, method={"getSkin"}, cancellable=true)
+    private void getSkin(CallbackInfoReturnable<PlayerSkin> cir) {
+        Player player = (Player)(Object)this;
+        ModelData data = ModelData.get(player);
+        SkinUtil.load(data, player);
+        if (!data.resourceLoaded || data.resourceLocation == null) {
+            return;
+        }
+
+        PlayerSkin skin = cir.getReturnValue();
+        if (data.resourceLocation.equals(skin.texture())) {
+            return;
+        }
+        cir.setReturnValue(new PlayerSkin(data.resourceLocation, skin.textureUrl(), skin.capeTexture(), skin.elytraTexture(), skin.model(), skin.secure()));
+    }
+}
