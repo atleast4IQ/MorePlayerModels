@@ -103,8 +103,7 @@ implements ICustomScrollListener {
         this.renderBackground(graphics, 0, 0, 0);
         graphics.blit(resource, this.guiLeft, this.guiTop + 8, 0, 0, this.xSize, 192);
         super.render(graphics, x, y, f);
-        RenderEvent.entityResource = this.playerdata.resourceLocation;
-        this.renderEntityPreview(graphics, this.player, this.guiLeft + 144, this.guiTop + 140, 40, x, y);
+        this.renderEntityPreview(graphics, this.player, this.guiLeft + 144, this.guiTop + 140, 40, x, y, this.playerdata.resourceLocation);
     }
 
     @Override

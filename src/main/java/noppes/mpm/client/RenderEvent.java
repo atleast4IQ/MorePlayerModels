@@ -59,9 +59,26 @@ import noppes.mpm.util.PixelmonHelper;
 
 public class RenderEvent {
     public static RenderEvent Instance;
-    private static Entity customEntity;
-    public static ResourceLocation entityResource;
+    private static ResourceLocation entityResource;
+    private static LivingEntity textureEntity;
     private static boolean renderingGuiPreview;
+
+    public static ResourceLocation textureFor(LivingEntity entity) {
+        return entity == textureEntity ? entityResource : null;
+    }
+
+    public static void withTexture(LivingEntity entity, ResourceLocation texture, Runnable renderer) {
+        ResourceLocation previousTexture = entityResource;
+        LivingEntity previousEntity = textureEntity;
+        entityResource = texture;
+        textureEntity = entity;
+        try {
+            renderer.run();
+        } finally {
+            entityResource = previousTexture;
+            textureEntity = previousEntity;
+        }
+    }
 
     public static void renderGuiPreview(Runnable renderer) {
         boolean previous = renderingGuiPreview;
@@ -78,29 +95,8 @@ public class RenderEvent {
         Minecraft mc = Minecraft.getInstance();
     }
 
-    @SubscribeEvent
-    public void post(RenderLivingEvent.Post event) {
-        if (renderingGuiPreview) {
-            return;
-        }
-        if (entityResource != null && event.getEntity() != customEntity) {
-            customEntity = null;
-            entityResource = null;
-        }
-        if (!(event.getEntity() instanceof AbstractClientPlayer)) {
-            return;
-        }
-        AbstractClientPlayer player = (AbstractClientPlayer)event.getEntity();
-        ModelData data = ModelData.get((Player)player);
-        if (data.moveAnimation == EnumAnimation.SLEEP) {
-            player.yBodyRot = player.yBodyRotO = player.getXRot();
-        }
-        BatchRenderer.getInstance().draw();
-        event.getPoseStack().popPose();
-    }
-
-    @SubscribeEvent(priority=EventPriority.LOWEST)
-    public void pre(RenderLivingEvent.Pre event) {
+    /** Called after the complete Pre dispatch, inside LivingRendererMixin's owned render scope. */
+    public static void prepare(RenderLivingEvent.Pre<?, ?> event) {
         if (renderingGuiPreview) {
             return;
         }
@@ -111,7 +107,6 @@ public class RenderEvent {
         AbstractClientPlayer player = (AbstractClientPlayer)event.getEntity();
         Minecraft mc = Minecraft.getInstance();
         PoseStack mStack = event.getPoseStack();
-        mStack.pushPose();
         if (ClientEventHandler.camera.enabled && player == mc.player) {
             player.yHeadRot = player.yBodyRot;
             player.yHeadRotO = player.yBodyRotO;
@@ -130,22 +125,29 @@ public class RenderEvent {
             offset = 0.0f;
         }
         ((EntityMixin)player).setEyeHeight(player.getEyeHeight(player.getPose()) - offset);
-        customEntity = data.getEntity((Player)player);
+        Entity customEntity = data.getEntity((Player)player);
         if (customEntity != null) {
-            if (ClientEventHandler.camera.enabled && player == mc.player) {
-                customEntity.setYRot(player.getYRot());
-                RenderEvent.customEntity.yRotO = player.yRotO;
+            float previousYaw = customEntity.getYRot();
+            float previousOldYaw = customEntity.yRotO;
+            boolean previousShift = customEntity.isShiftKeyDown();
+            try {
+                if (ClientEventHandler.camera.enabled && player == mc.player) {
+                    customEntity.setYRot(player.getYRot());
+                    customEntity.yRotO = player.yRotO;
+                }
+                event.setCanceled(true);
+                if (PixelmonHelper.isPixelmon(customEntity)) {
+                    customEntity.setShiftKeyDown(true);
+                }
+                // Custom entity models (for example a wolf) own their renderer and
+                // texture.  The old player-skin override turns their geometry into
+                // a scrambled player-skin atlas on 1.21.1.
+                mc.getEntityRenderDispatcher().render(customEntity, 0.0, 0.0, 0.0, 0.0f, event.getPartialTick(), RenderStateScope.copyPose(mStack), event.getMultiBufferSource(), event.getPackedLight());
+            } finally {
+                customEntity.setYRot(previousYaw);
+                customEntity.yRotO = previousOldYaw;
+                customEntity.setShiftKeyDown(previousShift);
             }
-            event.setCanceled(true);
-            if (PixelmonHelper.isPixelmon(customEntity)) {
-                customEntity.setShiftKeyDown(true);
-            }
-            // Custom entity models (for example a wolf) own their renderer and
-            // texture.  The old player-skin override turns their geometry into
-            // a scrambled player-skin atlas on 1.21.1.
-            entityResource = null;
-            mc.getEntityRenderDispatcher().render(customEntity, 0.0, 0.0, 0.0, 0.0f, event.getPartialTick(), mStack, event.getMultiBufferSource(), event.getPackedLight());
-            mStack.popPose();
             return;
         }
         offset = 0.0f;
@@ -168,8 +170,6 @@ public class RenderEvent {
     public void hand(RenderHandEvent event) {
         Minecraft mc = Minecraft.getInstance();
         ModelData data = ModelData.get((Player)mc.player);
-        Pose pose = mc.player.getPose();
-        ((EntityMixin)mc.player).setEyeHeight(mc.player.getEyeHeight(pose) - data.getOffsetCamera((Player)mc.player));
         LivingEntity entity = data.getEntity((Player)mc.player);
         if (entity != null || data.moveAnimation == EnumAnimation.SLEEP || data.moveAnimation == EnumAnimation.CRAWL || data.animation == EnumAnimation.BOW && mc.player.getMainHandItem().isEmpty()) {
             event.setCanceled(true);

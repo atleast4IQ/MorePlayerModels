@@ -365,34 +365,40 @@ extends Screen {
         entity.yHeadRot = 0.0f;
         entity.yHeadRotO = 0.0f;
         PoseStack poseStack = graphics.pose();
-        poseStack.pushPose();
-        float renderScale = 30.0f * previewScale;
-        // Vanilla 1.20 and 1.21 both scale all three model axes here. The
-        // old port kept Z at -1 while scaling X/Y by the preview zoom, which
-        // collapsed the depth gap between the player skin and armor and made
-        // them occlude each other as the preview rotated.
-        poseStack.translate(guiLeft + x, guiTop + y, 50.0f);
-        poseStack.scale(renderScale, renderScale, -renderScale);
-        // This is the original MPM root-stack orientation.  The former
-        // port changed the two Y-axis rotations into X-axis rotations,
-        // which flips the complete avatar upside down.
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0f));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(180.0f));
-        poseStack.mulPose(Axis.YN.rotationDegrees(rotation));
-        Lighting.setupForEntityInInventory();
         EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-        dispatcher.overrideCameraOrientation(Axis.YN.rotationDegrees(180.0f));
-        dispatcher.setRenderShadow(false);
-        RenderSystem.runAsFancy(() -> dispatcher.render(entity, 0.0, 0.0, 0.0, 0.0f, 1.0f, poseStack, graphics.bufferSource(), 0xF000F0));
-        graphics.flush();
-        dispatcher.setRenderShadow(true);
-        poseStack.popPose();
-        Lighting.setupFor3DItems();
-        entity.yBodyRot = bodyRot;
-        entity.setYRot(yaw);
-        entity.setXRot(pitch);
-        entity.yHeadRotO = headRotO;
-        entity.yHeadRot = headRot;
+        Quaternionf previousOrientation = new Quaternionf(dispatcher.cameraOrientation());
+        boolean previousShadow = ((noppes.mpm.mixin.EntityRenderDispatcherAccess)dispatcher).mpm$renderShadow();
+        poseStack.pushPose();
+        try {
+            float renderScale = 30.0f * previewScale;
+            // Vanilla 1.20 and 1.21 both scale all three model axes here. The
+            // old port kept Z at -1 while scaling X/Y by the preview zoom, which
+            // collapsed the depth gap between the player skin and armor and made
+            // them occlude each other as the preview rotated.
+            poseStack.translate(guiLeft + x, guiTop + y, 50.0f);
+            poseStack.scale(renderScale, renderScale, -renderScale);
+            // This is the original MPM root-stack orientation.  The former
+            // port changed the two Y-axis rotations into X-axis rotations,
+            // which flips the complete avatar upside down.
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0f));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(180.0f));
+            poseStack.mulPose(Axis.YN.rotationDegrees(rotation));
+            Lighting.setupForEntityInInventory();
+            dispatcher.overrideCameraOrientation(Axis.YN.rotationDegrees(180.0f));
+            dispatcher.setRenderShadow(false);
+            noppes.mpm.client.RenderStateScope.runAsFancy(() -> dispatcher.render(entity, 0.0, 0.0, 0.0, 0.0f, 1.0f, noppes.mpm.client.RenderStateScope.copyPose(poseStack), graphics.bufferSource(), 0xF000F0));
+            graphics.flush();
+        } finally {
+            dispatcher.overrideCameraOrientation(previousOrientation);
+            dispatcher.setRenderShadow(previousShadow);
+            poseStack.popPose();
+            Lighting.setupFor3DItems();
+            entity.yBodyRot = bodyRot;
+            entity.setYRot(yaw);
+            entity.setXRot(pitch);
+            entity.yHeadRotO = headRotO;
+            entity.yHeadRot = headRot;
+        }
     }
 
     /**
@@ -401,6 +407,12 @@ extends Screen {
      * entity height, which pushes every old MPM preview down into its buttons.
      * Recreate the old pose with the 1.21 renderer instead.
      */
+    protected void renderEntityPreview(GuiGraphics graphics, LivingEntity entity, int centerX, int centerY,
+            int scale, int mouseX, int mouseY, ResourceLocation texture) {
+        RenderEvent.withTexture(entity, texture,
+                () -> renderEntityPreview(graphics, entity, centerX, centerY, scale, mouseX, mouseY));
+    }
+
     protected void renderEntityPreview(GuiGraphics graphics, LivingEntity entity, int centerX, int centerY, int scale, int mouseX, int mouseY) {
         float horizontal = (float)Math.atan(((float)centerX - (float)mouseX) / 40.0f);
         float vertical = (float)Math.atan(((float)centerY - (float)mouseY) / 40.0f);
@@ -412,28 +424,41 @@ extends Screen {
         float pitch = entity.getXRot();
         float headRotO = entity.yHeadRotO;
         float headRot = entity.yHeadRot;
-        RenderEvent.renderGuiPreview(() -> {
-            entity.yBodyRot = 180.0f + horizontal * 20.0f;
-            entity.setYRot(180.0f + horizontal * 40.0f);
-            entity.setXRot(-vertical * 20.0f);
-            entity.yHeadRot = entity.getYRot();
-            entity.yHeadRotO = entity.getYRot();
-            InventoryScreen.renderEntityInInventory(
-                    graphics,
-                    centerX,
-                    centerY,
-                    (float)scale / entity.getScale(),
-                    new Vector3f(),
-                    pose,
-                    cameraOrientation,
-                    entity
-            );
-        });
-        entity.yBodyRot = bodyRot;
-        entity.setYRot(yaw);
-        entity.setXRot(pitch);
-        entity.yHeadRotO = headRotO;
-        entity.yHeadRot = headRot;
+        try {
+            RenderEvent.renderGuiPreview(() -> {
+                entity.yBodyRot = 180.0f + horizontal * 20.0f;
+                entity.setYRot(180.0f + horizontal * 40.0f);
+                entity.setXRot(-vertical * 20.0f);
+                entity.yHeadRot = entity.getYRot();
+                entity.yHeadRotO = entity.getYRot();
+                PoseStack preview = noppes.mpm.client.RenderStateScope.copyPose(graphics.pose());
+                preview.translate(centerX, centerY, 50.0);
+                float renderScale = (float)scale / entity.getScale();
+                preview.scale(renderScale, renderScale, -renderScale);
+                preview.mulPose(pose);
+                EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
+                Quaternionf previousOrientation = new Quaternionf(dispatcher.cameraOrientation());
+                boolean previousShadow = ((noppes.mpm.mixin.EntityRenderDispatcherAccess)dispatcher).mpm$renderShadow();
+                try {
+                    Lighting.setupForEntityInInventory();
+                    dispatcher.overrideCameraOrientation(cameraOrientation.conjugate(new Quaternionf()).rotateY((float)Math.PI));
+                    dispatcher.setRenderShadow(false);
+                    noppes.mpm.client.RenderStateScope.runAsFancy(() -> dispatcher.render(entity, 0, 0, 0, 0, 1,
+                            preview, graphics.bufferSource(), 15728880));
+                    graphics.flush();
+                } finally {
+                    dispatcher.overrideCameraOrientation(previousOrientation);
+                    dispatcher.setRenderShadow(previousShadow);
+                    Lighting.setupFor3DItems();
+                }
+            });
+        } finally {
+            entity.yBodyRot = bodyRot;
+            entity.setYRot(yaw);
+            entity.setXRot(pitch);
+            entity.yHeadRotO = headRotO;
+            entity.yHeadRot = headRot;
+        }
     }
 
     public void openLink(String link) {

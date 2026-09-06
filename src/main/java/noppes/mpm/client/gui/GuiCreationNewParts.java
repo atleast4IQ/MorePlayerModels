@@ -277,92 +277,98 @@ ICustomScrollListener {
             GuiCreationNewParts.this.renderData.mpmParts = GuiCreationNewParts.this.data.mpmParts;
             PoseStack matrixstack = graphics.pose();
             matrixstack.pushPose();
-            matrixstack.translate((double)(this.getX() + 10), (double)(this.getY() + 10), 150.0);
-            matrixstack.mulPose(new Matrix4f().scaling(1.0f, 1.0f, -1.0f));
-            EntityRenderDispatcher entityrenderermanager = minecraft.getEntityRenderDispatcher();
-            entityrenderermanager.setRenderShadow(false);
-            MultiBufferSource.BufferSource irendertypebuffer$impl = graphics.bufferSource();
-            VertexConsumer ivertex = irendertypebuffer$impl.getBuffer(RenderType.entityCutoutNoCull((ResourceLocation)GuiCreationNewParts.this.player.getSkin().texture()));
-            Lighting.setupForEntityInInventory();
-            RenderSystem.runAsFancy(() -> {
-                ModelPartWrapper modelPart;
-                GuiCreationNewParts.biped.leftLeg.visible = !this.part.hiddenParts.contains((Object)BodyPart.LEFT_LEG) && !this.part.hiddenParts.contains((Object)BodyPart.LEGS);
-                GuiCreationNewParts.biped.leftPants.visible = GuiCreationNewParts.biped.leftPants.visible && GuiCreationNewParts.biped.leftLeg.visible;
-                GuiCreationNewParts.biped.rightLeg.visible = !this.part.hiddenParts.contains((Object)BodyPart.RIGHT_LEG) && !this.part.hiddenParts.contains((Object)BodyPart.LEGS);
-                GuiCreationNewParts.biped.rightPants.visible = GuiCreationNewParts.biped.rightPants.visible && GuiCreationNewParts.biped.rightLeg.visible;
-                GuiCreationNewParts.biped.leftArm.visible = !this.part.hiddenParts.contains((Object)BodyPart.LEFT_ARM) && !this.part.hiddenParts.contains((Object)BodyPart.ARMS);
-                GuiCreationNewParts.biped.leftSleeve.visible = GuiCreationNewParts.biped.leftSleeve.visible && GuiCreationNewParts.biped.leftArm.visible;
-                GuiCreationNewParts.biped.rightArm.visible = !this.part.hiddenParts.contains((Object)BodyPart.RIGHT_ARM) && !this.part.hiddenParts.contains((Object)BodyPart.ARMS);
-                GuiCreationNewParts.biped.rightSleeve.visible = GuiCreationNewParts.biped.rightSleeve.visible && GuiCreationNewParts.biped.rightArm.visible;
-                GuiCreationNewParts.biped.body.visible = !this.part.hiddenParts.contains((Object)BodyPart.BODY);
-                GuiCreationNewParts.biped.jacket.visible = GuiCreationNewParts.biped.jacket.visible && GuiCreationNewParts.biped.body.visible;
-                GuiCreationNewParts.biped.head.visible = !this.part.hiddenParts.contains((Object)BodyPart.HEAD);
-                boolean bl = GuiCreationNewParts.biped.hat.visible = GuiCreationNewParts.biped.hat.visible && GuiCreationNewParts.biped.head.visible;
-                if (this.part.bodyPart == BodyPart.HEAD) {
-                    matrixstack.translate(24.0f, 34.0f, 25.0f);
-                    matrixstack.scale(36.0f, 36.0f, 36.0f);
-                    matrixstack.mulPose(Axis.XP.rotation(0.3926991f));
-                    matrixstack.mulPose(Axis.YP.rotation((float)this.part.previewRotation * ((float)Math.PI / 180)));
-                    GuiCreationNewParts.biped.head.render(matrixstack, ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
-                }
-                if (this.part.bodyPart == BodyPart.LEGS) {
-                    matrixstack.translate(18.0f, 4.0f, 25.0f);
-                    matrixstack.scale(36.0f, 36.0f, 36.0f);
-                    matrixstack.mulPose(Axis.XP.rotation(0.3926991f));
-                    matrixstack.mulPose(Axis.YP.rotation((float)this.part.previewRotation * ((float)Math.PI / 180)));
-                    GuiCreationNewParts.biped.body.render(matrixstack, ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
-                    if (this.part.animationType == PartBehaviorType.LEGS) {
-                        modelPart = this.part.getPart("right_leg");
-                        if (modelPart != null) {
-                            modelPart.setRot(new NopVector3f(GuiCreationNewParts.biped.rightLeg.xRot, GuiCreationNewParts.biped.rightLeg.yRot, GuiCreationNewParts.biped.rightLeg.zRot));
-                            modelPart.setPos(new NopVector3f(GuiCreationNewParts.biped.rightLeg.x, GuiCreationNewParts.biped.rightLeg.y, GuiCreationNewParts.biped.rightLeg.z));
+            try {
+                matrixstack.translate((double)(this.getX() + 10), (double)(this.getY() + 10), 150.0);
+                matrixstack.mulPose(new Matrix4f().scaling(1.0f, 1.0f, -1.0f));
+                EntityRenderDispatcher entityrenderermanager = minecraft.getEntityRenderDispatcher();
+                MultiBufferSource.BufferSource irendertypebuffer$impl = graphics.bufferSource();
+                VertexConsumer ivertex = irendertypebuffer$impl.getBuffer(RenderType.entityCutoutNoCull((ResourceLocation)GuiCreationNewParts.this.player.getSkin().texture()));
+                Lighting.setupForEntityInInventory();
+                noppes.mpm.client.RenderStateScope.runAsFancy(() -> {
+                    var previousParts = noppes.mpm.client.RenderStateScope.snapshot(biped);
+                    try (var partScope = this.part instanceof MpmPartAbstractClient clientPart ? clientPart.saveRenderState() : null) {
+                        ModelPartWrapper modelPart;
+                        GuiCreationNewParts.biped.leftLeg.visible = !this.part.hiddenParts.contains((Object)BodyPart.LEFT_LEG) && !this.part.hiddenParts.contains((Object)BodyPart.LEGS);
+                        GuiCreationNewParts.biped.leftPants.visible = GuiCreationNewParts.biped.leftPants.visible && GuiCreationNewParts.biped.leftLeg.visible;
+                        GuiCreationNewParts.biped.rightLeg.visible = !this.part.hiddenParts.contains((Object)BodyPart.RIGHT_LEG) && !this.part.hiddenParts.contains((Object)BodyPart.LEGS);
+                        GuiCreationNewParts.biped.rightPants.visible = GuiCreationNewParts.biped.rightPants.visible && GuiCreationNewParts.biped.rightLeg.visible;
+                        GuiCreationNewParts.biped.leftArm.visible = !this.part.hiddenParts.contains((Object)BodyPart.LEFT_ARM) && !this.part.hiddenParts.contains((Object)BodyPart.ARMS);
+                        GuiCreationNewParts.biped.leftSleeve.visible = GuiCreationNewParts.biped.leftSleeve.visible && GuiCreationNewParts.biped.leftArm.visible;
+                        GuiCreationNewParts.biped.rightArm.visible = !this.part.hiddenParts.contains((Object)BodyPart.RIGHT_ARM) && !this.part.hiddenParts.contains((Object)BodyPart.ARMS);
+                        GuiCreationNewParts.biped.rightSleeve.visible = GuiCreationNewParts.biped.rightSleeve.visible && GuiCreationNewParts.biped.rightArm.visible;
+                        GuiCreationNewParts.biped.body.visible = !this.part.hiddenParts.contains((Object)BodyPart.BODY);
+                        GuiCreationNewParts.biped.jacket.visible = GuiCreationNewParts.biped.jacket.visible && GuiCreationNewParts.biped.body.visible;
+                        GuiCreationNewParts.biped.head.visible = !this.part.hiddenParts.contains((Object)BodyPart.HEAD);
+                        boolean bl = GuiCreationNewParts.biped.hat.visible = GuiCreationNewParts.biped.hat.visible && GuiCreationNewParts.biped.head.visible;
+                        if (this.part.bodyPart == BodyPart.HEAD) {
+                            matrixstack.translate(24.0f, 34.0f, 25.0f);
+                            matrixstack.scale(36.0f, 36.0f, 36.0f);
+                            matrixstack.mulPose(Axis.XP.rotation(0.3926991f));
+                            matrixstack.mulPose(Axis.YP.rotation((float)this.part.previewRotation * ((float)Math.PI / 180)));
+                            GuiCreationNewParts.biped.head.render(noppes.mpm.client.RenderStateScope.copyPose(matrixstack), ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
                         }
-                        if ((modelPart = this.part.getPart("left_leg")) != null) {
-                            modelPart.setRot(new NopVector3f(GuiCreationNewParts.biped.leftLeg.xRot, GuiCreationNewParts.biped.leftLeg.yRot, GuiCreationNewParts.biped.leftLeg.zRot));
-                            modelPart.setPos(new NopVector3f(GuiCreationNewParts.biped.leftLeg.x, GuiCreationNewParts.biped.leftLeg.y, GuiCreationNewParts.biped.leftLeg.z));
+                        if (this.part.bodyPart == BodyPart.LEGS) {
+                            matrixstack.translate(18.0f, 4.0f, 25.0f);
+                            matrixstack.scale(36.0f, 36.0f, 36.0f);
+                            matrixstack.mulPose(Axis.XP.rotation(0.3926991f));
+                            matrixstack.mulPose(Axis.YP.rotation((float)this.part.previewRotation * ((float)Math.PI / 180)));
+                            GuiCreationNewParts.biped.body.render(noppes.mpm.client.RenderStateScope.copyPose(matrixstack), ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
+                            if (this.part.animationType == PartBehaviorType.LEGS) {
+                                modelPart = this.part.getPart("right_leg");
+                                if (modelPart != null) {
+                                    modelPart.setRot(new NopVector3f(GuiCreationNewParts.biped.rightLeg.xRot, GuiCreationNewParts.biped.rightLeg.yRot, GuiCreationNewParts.biped.rightLeg.zRot));
+                                    modelPart.setPos(new NopVector3f(GuiCreationNewParts.biped.rightLeg.x, GuiCreationNewParts.biped.rightLeg.y, GuiCreationNewParts.biped.rightLeg.z));
+                                }
+                                if ((modelPart = this.part.getPart("left_leg")) != null) {
+                                    modelPart.setRot(new NopVector3f(GuiCreationNewParts.biped.leftLeg.xRot, GuiCreationNewParts.biped.leftLeg.yRot, GuiCreationNewParts.biped.leftLeg.zRot));
+                                    modelPart.setPos(new NopVector3f(GuiCreationNewParts.biped.leftLeg.x, GuiCreationNewParts.biped.leftLeg.y, GuiCreationNewParts.biped.leftLeg.z));
+                                }
+                            }
+                            GuiCreationNewParts.biped.rightLeg.render(noppes.mpm.client.RenderStateScope.copyPose(matrixstack), ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
+                            GuiCreationNewParts.biped.leftLeg.render(noppes.mpm.client.RenderStateScope.copyPose(matrixstack), ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
                         }
+                        if (this.part.bodyPart == BodyPart.ARMS) {
+                            matrixstack.translate(18.0f, 12.0f, 25.0f);
+                            matrixstack.scale(36.0f, 36.0f, 36.0f);
+                            matrixstack.mulPose(Axis.XP.rotation(0.3926991f));
+                            matrixstack.mulPose(Axis.YP.rotation((float)this.part.previewRotation * ((float)Math.PI / 180)));
+                            GuiCreationNewParts.biped.body.render(noppes.mpm.client.RenderStateScope.copyPose(matrixstack), ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
+                            if (this.part.animationType == PartBehaviorType.ARMS) {
+                                modelPart = this.part.getPart("right_arm");
+                                if (modelPart != null) {
+                                    modelPart.setRot(new NopVector3f(GuiCreationNewParts.biped.rightArm.xRot, GuiCreationNewParts.biped.rightArm.yRot, GuiCreationNewParts.biped.rightArm.zRot));
+                                    modelPart.setPos(new NopVector3f(GuiCreationNewParts.biped.rightArm.x, GuiCreationNewParts.biped.rightArm.y, GuiCreationNewParts.biped.rightArm.z));
+                                }
+                                if ((modelPart = this.part.getPart("left_arm")) != null) {
+                                    modelPart.setRot(new NopVector3f(GuiCreationNewParts.biped.leftArm.xRot, GuiCreationNewParts.biped.leftArm.yRot, GuiCreationNewParts.biped.leftArm.zRot));
+                                    modelPart.setPos(new NopVector3f(GuiCreationNewParts.biped.leftArm.x, GuiCreationNewParts.biped.leftArm.y, GuiCreationNewParts.biped.leftArm.z));
+                                }
+                            }
+                            GuiCreationNewParts.biped.leftArm.render(noppes.mpm.client.RenderStateScope.copyPose(matrixstack), ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
+                            GuiCreationNewParts.biped.rightArm.render(noppes.mpm.client.RenderStateScope.copyPose(matrixstack), ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
+                        }
+                        if (this.part.bodyPart == BodyPart.BODY) {
+                            matrixstack.translate(18.0f, 18.0f, 25.0f);
+                            matrixstack.scale(36.0f, 36.0f, 36.0f);
+                            matrixstack.mulPose(Axis.XP.rotation(0.3926991f));
+                            matrixstack.mulPose(Axis.YP.rotation((float)this.part.previewRotation * ((float)Math.PI / 180)));
+                            GuiCreationNewParts.biped.body.render(noppes.mpm.client.RenderStateScope.copyPose(matrixstack), ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
+                        }
+                        if (this.part.renderType != PartRenderType.NONE) {
+                            MpmPartAbstractClient partc = (MpmPartAbstractClient)this.part;
+                            partc.pos = NopVector3f.ZERO;
+                            partc.rot = NopVector3f.ZERO;
+                            LayerParts.renderPart(this.data, partc, matrixstack, (MultiBufferSource)irendertypebuffer$impl, 0xF000F0, (AbstractClientPlayer)minecraft.player, biped, GuiCreationNewParts.this.renderData);
+                        }
+                    } finally {
+                        previousParts.forEach(noppes.mpm.client.RenderStateScope.PartState::restore);
                     }
-                    GuiCreationNewParts.biped.rightLeg.render(matrixstack, ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
-                    GuiCreationNewParts.biped.leftLeg.render(matrixstack, ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
-                }
-                if (this.part.bodyPart == BodyPart.ARMS) {
-                    matrixstack.translate(18.0f, 12.0f, 25.0f);
-                    matrixstack.scale(36.0f, 36.0f, 36.0f);
-                    matrixstack.mulPose(Axis.XP.rotation(0.3926991f));
-                    matrixstack.mulPose(Axis.YP.rotation((float)this.part.previewRotation * ((float)Math.PI / 180)));
-                    GuiCreationNewParts.biped.body.render(matrixstack, ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
-                    if (this.part.animationType == PartBehaviorType.ARMS) {
-                        modelPart = this.part.getPart("right_arm");
-                        if (modelPart != null) {
-                            modelPart.setRot(new NopVector3f(GuiCreationNewParts.biped.rightArm.xRot, GuiCreationNewParts.biped.rightArm.yRot, GuiCreationNewParts.biped.rightArm.zRot));
-                            modelPart.setPos(new NopVector3f(GuiCreationNewParts.biped.rightArm.x, GuiCreationNewParts.biped.rightArm.y, GuiCreationNewParts.biped.rightArm.z));
-                        }
-                        if ((modelPart = this.part.getPart("left_arm")) != null) {
-                            modelPart.setRot(new NopVector3f(GuiCreationNewParts.biped.leftArm.xRot, GuiCreationNewParts.biped.leftArm.yRot, GuiCreationNewParts.biped.leftArm.zRot));
-                            modelPart.setPos(new NopVector3f(GuiCreationNewParts.biped.leftArm.x, GuiCreationNewParts.biped.leftArm.y, GuiCreationNewParts.biped.leftArm.z));
-                        }
-                    }
-                    GuiCreationNewParts.biped.leftArm.render(matrixstack, ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
-                    GuiCreationNewParts.biped.rightArm.render(matrixstack, ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
-                }
-                if (this.part.bodyPart == BodyPart.BODY) {
-                    matrixstack.translate(18.0f, 18.0f, 25.0f);
-                    matrixstack.scale(36.0f, 36.0f, 36.0f);
-                    matrixstack.mulPose(Axis.XP.rotation(0.3926991f));
-                    matrixstack.mulPose(Axis.YP.rotation((float)this.part.previewRotation * ((float)Math.PI / 180)));
-                    GuiCreationNewParts.biped.body.render(matrixstack, ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
-                }
-                if (this.part.renderType != PartRenderType.NONE) {
-                    MpmPartAbstractClient partc = (MpmPartAbstractClient)this.part;
-                    partc.pos = NopVector3f.ZERO;
-                    partc.rot = NopVector3f.ZERO;
-                    LayerParts.renderPart(this.data, partc, matrixstack, (MultiBufferSource)irendertypebuffer$impl, 0xF000F0, (AbstractClientPlayer)minecraft.player, biped, GuiCreationNewParts.this.renderData);
-                }
-            });
-            graphics.flush();
-            matrixstack.popPose();
-            entityrenderermanager.setRenderShadow(true);
-            Lighting.setupFor3DItems();
+                });
+                graphics.flush();
+            } finally {
+                matrixstack.popPose();
+                Lighting.setupFor3DItems();
+            }
         }
 
         public void renderWidget(GuiGraphics graphics, int xMouse, int yMouse, float tick) {
@@ -581,33 +587,43 @@ ICustomScrollListener {
             graphics.vLine(this.guiLeft + this.xSize, this.guiTop, this.guiTop + this.ySize, -1);
             PoseStack posestack = new PoseStack();
             posestack.pushPose();
-            posestack.translate((double)(this.guiLeft + 10), (double)(this.guiTop + 10), 150.0);
-            posestack.scale(1.0f, 1.0f, -1.0f);
-            RenderSystem.applyModelViewMatrix();
-            PoseStack matrixstack = new PoseStack();
-            matrixstack.pushPose();
-            EntityRenderDispatcher entityrenderermanager = this.minecraft.getEntityRenderDispatcher();
-            entityrenderermanager.setRenderShadow(false);
-            MultiBufferSource.BufferSource irendertypebuffer$impl = this.minecraft.renderBuffers().bufferSource();
-            VertexConsumer ivertex = irendertypebuffer$impl.getBuffer(RenderType.entityCutoutNoCull((ResourceLocation)this.player.getSkin().texture()));
-            Lighting.setupForEntityInInventory();
-            RenderSystem.runAsFancy(() -> {
-                GuiCreationNewParts.biped.body.visible = !this.part.hiddenParts.contains((Object)BodyPart.BODY);
-                GuiCreationNewParts.biped.jacket.visible = GuiCreationNewParts.biped.jacket.visible && GuiCreationNewParts.biped.body.visible;
-                GuiCreationNewParts.biped.head.visible = !this.part.hiddenParts.contains((Object)BodyPart.HEAD);
-                GuiCreationNewParts.biped.hat.visible = GuiCreationNewParts.biped.hat.visible && GuiCreationNewParts.biped.head.visible;
-                matrixstack.translate(19.0f, 43.0f, 25.0f);
-                matrixstack.scale(100.0f, 100.0f, 100.0f);
-                GuiCreationNewParts.biped.head.render(matrixstack, ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
-                this.part.pos = NopVector3f.ZERO;
-                this.part.rot = NopVector3f.ZERO;
-                LayerParts.renderPart(this.data, this.part, matrixstack, (MultiBufferSource)irendertypebuffer$impl, 0xF000F0, (AbstractClientPlayer)this.minecraft.player, biped, GuiCreationNewParts.this.renderData);
-            });
-            irendertypebuffer$impl.endBatch();
-            matrixstack.popPose();
-            posestack.popPose();
-            entityrenderermanager.setRenderShadow(true);
-            RenderSystem.applyModelViewMatrix();
+            try {
+                posestack.translate((double)(this.guiLeft + 10), (double)(this.guiTop + 10), 150.0);
+                posestack.scale(1.0f, 1.0f, -1.0f);
+                RenderSystem.applyModelViewMatrix();
+                PoseStack matrixstack = new PoseStack();
+                matrixstack.pushPose();
+                try {
+                    EntityRenderDispatcher entityrenderermanager = this.minecraft.getEntityRenderDispatcher();
+                    MultiBufferSource.BufferSource irendertypebuffer$impl = this.minecraft.renderBuffers().bufferSource();
+                    VertexConsumer ivertex = irendertypebuffer$impl.getBuffer(RenderType.entityCutoutNoCull((ResourceLocation)this.player.getSkin().texture()));
+                    Lighting.setupForEntityInInventory();
+                    noppes.mpm.client.RenderStateScope.runAsFancy(() -> {
+                        var previousParts = noppes.mpm.client.RenderStateScope.snapshot(biped);
+                        try (var partScope = this.part instanceof MpmPartAbstractClient clientPart ? clientPart.saveRenderState() : null) {
+                            GuiCreationNewParts.biped.body.visible = !this.part.hiddenParts.contains((Object)BodyPart.BODY);
+                            GuiCreationNewParts.biped.jacket.visible = GuiCreationNewParts.biped.jacket.visible && GuiCreationNewParts.biped.body.visible;
+                            GuiCreationNewParts.biped.head.visible = !this.part.hiddenParts.contains((Object)BodyPart.HEAD);
+                            GuiCreationNewParts.biped.hat.visible = GuiCreationNewParts.biped.hat.visible && GuiCreationNewParts.biped.head.visible;
+                            matrixstack.translate(19.0f, 43.0f, 25.0f);
+                            matrixstack.scale(100.0f, 100.0f, 100.0f);
+                            GuiCreationNewParts.biped.head.render(noppes.mpm.client.RenderStateScope.copyPose(matrixstack), ivertex, 0xF000F0, OverlayTexture.NO_OVERLAY);
+                            this.part.pos = NopVector3f.ZERO;
+                            this.part.rot = NopVector3f.ZERO;
+                            LayerParts.renderPart(this.data, this.part, matrixstack, (MultiBufferSource)irendertypebuffer$impl, 0xF000F0, (AbstractClientPlayer)this.minecraft.player, biped, GuiCreationNewParts.this.renderData);
+                        } finally {
+                            previousParts.forEach(noppes.mpm.client.RenderStateScope.PartState::restore);
+                        }
+                    });
+                    irendertypebuffer$impl.endBatch();
+                } finally {
+                    matrixstack.popPose();
+                }
+            } finally {
+                posestack.popPose();
+                Lighting.setupFor3DItems();
+                RenderSystem.applyModelViewMatrix();
+            }
         }
 
         @Override

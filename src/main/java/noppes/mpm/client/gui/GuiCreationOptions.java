@@ -88,8 +88,7 @@ implements ITextfieldListener {
             entity = this.player;
         }
         if (!this.hasSubGui()) {
-            RenderEvent.entityResource = this.playerdata.resourceLocation;
-            this.renderEntityPreview(graphics, entity, this.guiLeft + 270, this.guiTop + 120, 56, x, y);
+            this.renderEntityPreview(graphics, entity, this.guiLeft + 270, this.guiTop + 120, 56, x, y, this.playerdata.resourceLocation);
         }
     }
 

@@ -41,16 +41,18 @@ extends MpmPartAbstractClient {
 
     @Override
     public void render(MpmPartData data, PoseStack mStack, VertexConsumer c, int lightmapUV, AbstractClientPlayer player) {
+        var previousTexture = Model2DRenderer.textureOverride;
         mStack.pushPose();
-        if (data.usePlayerSkin) {
-            Model2DRenderer.textureOverride = SkinUtil.getTexture(player);
+        try {
+            Model2DRenderer.textureOverride = data.usePlayerSkin ? SkinUtil.getTexture(player) : null;
+            if (this.model != null) {
+                this.translateAndRotate(mStack);
+                this.model.render(mStack, c, lightmapUV, OverlayTexture.NO_OVERLAY, data.color.x, data.color.y, data.color.z, 1.0f);
+            }
+        } finally {
+            Model2DRenderer.textureOverride = previousTexture;
+            mStack.popPose();
         }
-        if (this.model != null) {
-            this.translateAndRotate(mStack);
-            this.model.render(mStack, c, lightmapUV, OverlayTexture.NO_OVERLAY, data.color.x, data.color.y, data.color.z, 1.0f);
-        }
-        mStack.popPose();
-        Model2DRenderer.textureOverride = null;
     }
 
     public void translateAndRotate(PoseStack pose) {

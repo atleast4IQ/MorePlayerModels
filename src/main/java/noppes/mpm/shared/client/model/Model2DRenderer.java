@@ -110,7 +110,9 @@ extends NopModelPart {
             image = null;
             try {
                 Resource resource = (Resource)Minecraft.getInstance().getResourceManager().getResource(location).get();
-                image = ImageIO.read(resource.open());
+                try (var input = resource.open()) {
+                    image = ImageIO.read(input);
+                }
             }
             catch (Exception e) {
                 AbstractTexture text = Minecraft.getInstance().getTextureManager().getTexture(location, null);
@@ -242,42 +244,55 @@ extends NopModelPart {
             return;
         }
         mstack.pushPose();
-        this.translateAndRotate(mstack);
-        float f = 0.0625f;
-        mstack.translate(this.rotationOffsetX * f, this.rotationOffsetY * f, this.rotationOffsetZ * f);
-        mstack.scale(this.scaleX * (float)this.width / (float)this.height, this.scaleY, this.thickness);
-        mstack.mulPose(Axis.XP.rotationDegrees(180.0f));
-        if (this.mirror) {
-            mstack.translate(0.0f, 0.0f, -1.0f * f);
-            mstack.mulPose(Axis.YP.rotationDegrees(180.0f));
+        try {
+            this.translateAndRotate(mstack);
+            float f = 0.0625f;
+            mstack.translate(this.rotationOffsetX * f, this.rotationOffsetY * f, this.rotationOffsetZ * f);
+            mstack.scale(this.scaleX * (float)this.width / (float)this.height, this.scaleY, this.thickness);
+            mstack.mulPose(Axis.XP.rotationDegrees(180.0f));
+            if (this.mirror) {
+                mstack.translate(0.0f, 0.0f, -1.0f * f);
+                mstack.mulPose(Axis.YP.rotationDegrees(180.0f));
+            }
+            this.renderModel(location, mstack.last().normal(), mstack.last().pose(), builder, light, overlay, red, green, blue, alpha);
+        } finally {
+            mstack.popPose();
         }
-        this.renderModel(location, mstack.last().normal(), mstack.last().pose(), builder, light, overlay, red, green, blue, alpha);
-        mstack.popPose();
     }
 
     public void render(ResourceLocation resource, PoseStack mstack, int light, int overlay, float red, float green, float blue, float alpha) {
         if (!this.visible || resource == null) {
             return;
         }
-        Minecraft.getInstance().getTextureManager().bindForSetup(resource);
-        RenderType rType = CustomRenderStates.entityCutout(resource);
-        RenderSystem.setShader(() -> CustomRenderStates.posTexNormalShader);
-        RenderSystem.setShaderTexture((int)0, (ResourceLocation)resource);
-        RenderSystem.setTextureMatrix((Matrix4f)new Matrix4f().translation((float)this.texPos.x, (float)this.texPos.y, 0.0f));
-        mstack.pushPose();
-        this.translateAndRotate(mstack);
-        float f = 0.0625f;
-        mstack.translate(this.rotationOffsetX * f, this.rotationOffsetY * f, this.rotationOffsetZ * f);
-        mstack.scale(this.scaleX * (float)this.width / (float)this.height, this.scaleY, this.thickness);
-        mstack.mulPose(Axis.XP.rotationDegrees(180.0f));
-        if (this.mirror) {
-            mstack.translate(0.0f, 0.0f, -1.0f * f);
-            mstack.mulPose(Axis.YP.rotationDegrees(180.0f));
+        var previousShader = RenderSystem.getShader();
+        int previousTexture = RenderSystem.getShaderTexture(0);
+        Matrix4f previousTextureMatrix = new Matrix4f(RenderSystem.getTextureMatrix());
+        try {
+            RenderSystem.setShader(() -> CustomRenderStates.posTexNormalShader);
+            RenderSystem.setShaderTexture((int)0, (ResourceLocation)resource);
+            RenderSystem.setTextureMatrix((Matrix4f)new Matrix4f().translation((float)this.texPos.x, (float)this.texPos.y, 0.0f));
+            mstack.pushPose();
+            try {
+                this.translateAndRotate(mstack);
+                float f = 0.0625f;
+                mstack.translate(this.rotationOffsetX * f, this.rotationOffsetY * f, this.rotationOffsetZ * f);
+                mstack.scale(this.scaleX * (float)this.width / (float)this.height, this.scaleY, this.thickness);
+                mstack.mulPose(Axis.XP.rotationDegrees(180.0f));
+                if (this.mirror) {
+                    mstack.translate(0.0f, 0.0f, -1.0f * f);
+                    mstack.mulPose(Axis.YP.rotationDegrees(180.0f));
+                }
+                PoseStack.Pose entry = mstack.last();
+                Matrix4f matrix = entry.pose();
+                this.cache.drawWithShader(matrix, new Matrix4f(), RenderSystem.getShader());
+            } finally {
+                mstack.popPose();
+            }
+        } finally {
+            RenderSystem.setShader(() -> previousShader);
+            RenderSystem.setShaderTexture(0, previousTexture);
+            RenderSystem.setTextureMatrix(previousTextureMatrix);
         }
-        PoseStack.Pose entry = mstack.last();
-        Matrix4f matrix = entry.pose();
-        this.cache.drawWithShader(matrix, new Matrix4f(), RenderSystem.getShader());
-        mstack.popPose();
     }
 
     public void renderModel(ResourceLocation resource, Matrix3f matrix3f, Matrix4f matrix4f, VertexConsumer builder, int light, int overlay, float red, float green, float blue, float alpha) {

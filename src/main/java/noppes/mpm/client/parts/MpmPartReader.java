@@ -54,12 +54,15 @@ public class MpmPartReader {
         HashMap<String, List<AnimationContainer>> mapA = new HashMap<String, List<AnimationContainer>>();
         List<ResourceLocation> list = AssetsFinder.find("animations", ".json");
         for (ResourceLocation loc : list) {
-            try {
-                Resource resource = (Resource)Minecraft.getInstance().getResourceManager().getResource(loc).get();
-                JsonObject root = JsonParser.parseReader((Reader)resource.openAsReader()).getAsJsonObject();
+            try (Reader reader = Minecraft.getInstance().getResourceManager().getResource(loc).orElseThrow().openAsReader()) {
+                JsonElement document = JsonParser.parseReader(reader);
+                if (!MpmAnimationFormat.isMpm(document)) {
+                    continue;
+                }
+                JsonObject root = document.getAsJsonObject();
                 mapA.put(loc.getPath().substring(11, loc.getPath().length() - 5), MpmPart.loadAnimations(root));
             }
-            catch (Throwable throwable) {
+            catch (Exception throwable) {
                 LogWriter.error("Error in " + loc.toString(), throwable);
             }
         }
@@ -83,9 +86,8 @@ public class MpmPartReader {
     }
 
     private static MpmPart loadPart(ResourceLocation location) {
-        try {
-            Resource r = (Resource)Minecraft.getInstance().getResourceManager().getResource(location).get();
-            JsonObject root = JsonParser.parseReader((Reader)r.openAsReader()).getAsJsonObject();
+        try (Reader reader = Minecraft.getInstance().getResourceManager().getResource(location).orElseThrow().openAsReader()) {
+            JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
             PartRenderType renderType = PartRenderType.valueOf(MpmPartReader.getRequiredString(root, "render_type").toUpperCase());
             MpmPart part = new MpmPart();
             if (renderType == PartRenderType.BEDROCK) {
@@ -127,7 +129,7 @@ public class MpmPartReader {
             }
             return part;
         }
-        catch (Throwable e) {
+        catch (Exception e) {
             LogWriter.error("Error in " + location.toString(), e);
             MpmPartReader.Notify(Component.literal((String)("Error in " + location + " - " + e.getMessage())));
             return null;

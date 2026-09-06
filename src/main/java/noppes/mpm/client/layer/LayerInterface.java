@@ -94,15 +94,25 @@ extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
         if (this.base != this.getParentModel()) {
             this.setBase((PlayerModel)this.getParentModel());
         }
-        this.player = player;
-        this.playerdata = ModelData.get((Player)player);
-        this.rotate(limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
-        mStack.pushPose();
-        if (player.isCrouching()) {
-            // empty if block
+        AbstractClientPlayer previousPlayer = this.player;
+        ModelData previousData = this.playerdata;
+        try {
+            this.player = player;
+            this.playerdata = ModelData.get((Player)player);
+            this.rotate(limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
+            mStack.pushPose();
+            try {
+                if (player.isCrouching()) {
+                    // empty if block
+                }
+                this.render(mStack, typeBuffer, lightmapUV, limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
+            } finally {
+                mStack.popPose();
+            }
+        } finally {
+            this.player = previousPlayer;
+            this.playerdata = previousData;
         }
-        this.render(mStack, typeBuffer, lightmapUV, limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
-        mStack.popPose();
     }
 
     public void setRotation(NopModelPart model, float x, float y, float z) {

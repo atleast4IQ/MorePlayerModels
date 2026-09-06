@@ -66,6 +66,10 @@ public class ModelPartWrapper {
         }
     }
 
+    public boolean isVisible() {
+        return this.mcPart != null ? this.mcPart.visible : this.mpmPart.visible;
+    }
+
     public void setVisible(boolean b) {
         if (this.mcPart != null) {
             this.mcPart.visible = b;

@@ -31,6 +31,39 @@ extends MpmPart {
     public NopVector3f rot = NopVector3f.ZERO;
     protected Map<String, ModelPartWrapper> defaultPose = new HashMap<String, ModelPartWrapper>();
 
+    public PartScope saveRenderState() {
+        return new PartScope(this);
+    }
+
+    public static final class PartScope implements AutoCloseable {
+        private final MpmPartAbstractClient part;
+        private final NopVector3f pos, rot;
+        private final java.util.List<Runnable> restores;
+
+        private PartScope(MpmPartAbstractClient part) {
+            this.part = part;
+            pos = part.pos;
+            rot = part.rot;
+            restores = part.defaultPose.values().stream().map(wrapper -> {
+                NopVector3f position = wrapper.getPos();
+                NopVector3f rotation = wrapper.getRot();
+                boolean visible = wrapper.isVisible();
+                return (Runnable)() -> {
+                    wrapper.setPos(position);
+                    wrapper.setRot(rotation);
+                    wrapper.setVisible(visible);
+                };
+            }).toList();
+        }
+
+        @Override
+        public void close() {
+            part.pos = pos;
+            part.rot = rot;
+            restores.forEach(Runnable::run);
+        }
+    }
+
     public void render(MpmPartData data, PoseStack mStack, MultiBufferSource typeBuffer, int lightmapUV, AbstractClientPlayer player) {
         VertexConsumer c = typeBuffer.getBuffer(RenderType.entityTranslucent(data.usePlayerSkin ? SkinUtil.getTexture(player) : data.getTexture()));
         this.render(data, mStack, c, lightmapUV, player);

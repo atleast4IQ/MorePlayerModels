@@ -17,6 +17,11 @@
  */
 package noppes.mpm.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import net.minecraft.client.model.geom.ModelPart;
+import noppes.mpm.client.RenderStateScope;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
@@ -38,6 +43,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value={PlayerRenderer.class})
 public class PlayerRendererMixin {
+    @WrapMethod(method = "render(Lnet/minecraft/client/player/AbstractClientPlayer;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V")
+    private void mpm$playerScope(AbstractClientPlayer player, float yaw, float partialTick, PoseStack poses,
+            MultiBufferSource buffers, int light, Operation<Void> original) {
+        PlayerRenderer renderer = (PlayerRenderer)(Object)this;
+        try (var scope = new RenderStateScope(player, renderer.getModel())) {
+            original.call(player, yaw, partialTick, poses, buffers, light);
+        }
+    }
+
+    @WrapMethod(method = "renderHand")
+    private void mpm$handScope(PoseStack poses, MultiBufferSource buffers, int light, AbstractClientPlayer player,
+            ModelPart arm, ModelPart sleeve,
+            Operation<Void> original) {
+        PlayerRenderer renderer = (PlayerRenderer)(Object)this;
+        try (var scope = new RenderStateScope(player, renderer.getModel())) {
+            original.call(RenderStateScope.copyPose(poses), buffers, light, player, arm, sleeve);
+        }
+    }
+
     /**
      * PlayerRenderer now reads PlayerSkin.texture() directly.  The old
      * AbstractClientPlayer#getSkinTextureLocation hook is therefore not on
@@ -75,8 +99,11 @@ public class PlayerRendererMixin {
         }
         boolean inRange = player.distanceTo(mc.getCameraEntity()) <= 4.0f;
         mStack.pushPose();
-        mStack.translate(0.0, 0.7 + (double)player.getBbHeight(), 0.0);
-        chat.renderMessages(mStack, buffer, 1.0f, inRange, lightmapUV);
-        mStack.popPose();
+        try {
+            mStack.translate(0.0, 0.7 + (double)player.getBbHeight(), 0.0);
+            chat.renderMessages(mStack, buffer, 1.0f, inRange, lightmapUV);
+        } finally {
+            mStack.popPose();
+        }
     }
 }

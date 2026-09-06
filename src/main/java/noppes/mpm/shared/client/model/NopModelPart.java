@@ -161,12 +161,15 @@ public class NopModelPart {
     public void render(PoseStack p_228309_1_, VertexConsumer p_228309_2_, int p_228309_3_, int p_228309_4_, float p_228309_5_, float p_228309_6_, float p_228309_7_, float p_228309_8_) {
         if (!(!this.visible || this.cubes.isEmpty() && this.children.isEmpty())) {
             p_228309_1_.pushPose();
-            this.translateAndRotate(p_228309_1_);
-            this.compile(p_228309_1_.last(), p_228309_2_, p_228309_3_, p_228309_4_, p_228309_5_, p_228309_6_, p_228309_7_, p_228309_8_);
-            for (NopModelPart MpmModelPart : this.children.values()) {
-                MpmModelPart.render(p_228309_1_, p_228309_2_, p_228309_3_, p_228309_4_, p_228309_5_, p_228309_6_, p_228309_7_, p_228309_8_);
+            try {
+                this.translateAndRotate(p_228309_1_);
+                this.compile(p_228309_1_.last(), p_228309_2_, p_228309_3_, p_228309_4_, p_228309_5_, p_228309_6_, p_228309_7_, p_228309_8_);
+                for (NopModelPart MpmModelPart : this.children.values()) {
+                    MpmModelPart.render(p_228309_1_, p_228309_2_, p_228309_3_, p_228309_4_, p_228309_5_, p_228309_6_, p_228309_7_, p_228309_8_);
+                }
+            } finally {
+                p_228309_1_.popPose();
             }
-            p_228309_1_.popPose();
         }
     }
 

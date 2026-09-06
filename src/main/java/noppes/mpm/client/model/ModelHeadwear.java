@@ -16,7 +16,8 @@ public class ModelHeadwear
 extends ModelScaleRenderer {
     public ModelHeadwear() {
         super(null, EnumParts.HEAD);
-        ResourceLocation location = ResourceLocation.parse("");
+        // Headwear always supplies the current player texture at render time.
+        ResourceLocation location = null;
         Model2DRenderer right = new Model2DRenderer(64, 64, 32, 8, 8, 8, location);
         right.setPos(-4.641f, 0.8f, 4.64f);
         right.setScale(0.58f);

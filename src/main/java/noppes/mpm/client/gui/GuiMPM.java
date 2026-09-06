@@ -179,8 +179,7 @@ ISubGuiListener {
             entity = this.player;
         }
         if (!this.hasSubGui()) {
-            RenderEvent.entityResource = this.playerdata.resourceLocation;
-            this.renderEntityPreview(graphics, entity, this.guiLeft + 140, this.guiTop + 140, 56, x, y);
+            this.renderEntityPreview(graphics, entity, this.guiLeft + 140, this.guiTop + 140, 56, x, y, this.playerdata.resourceLocation);
             if (showMenu) {
                 IModInfo info = ModList.get().getMods().stream().filter(t -> t.getModId().equals("moreplayermodels")).findFirst().get();
                 graphics.drawString(this.font, (Component)Component.literal((String)("More Player Models " + info.getVersion().toString())), this.guiLeft + 184, this.guiTop + 8, 0xFFFFFF);

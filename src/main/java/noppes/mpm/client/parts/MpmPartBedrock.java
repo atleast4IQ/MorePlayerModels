@@ -54,18 +54,21 @@ extends MpmPartAbstractClient {
     @Override
     public void render(MpmPartData data, PoseStack mStack, VertexConsumer c, int lightmapUV, AbstractClientPlayer player) {
         mStack.pushPose();
-        if (this.model != null) {
-            Map<String, ModelPart> children = this.modelMixin.getChildren();
-            this.model.translateAndRotate(mStack);
-            float f = 0.0625f;
-            mStack.translate(-this.rotatePoint.x * f, -this.rotatePoint.y * f, -this.rotatePoint.z * f);
-            mStack.scale(this.scale.x, this.scale.y, this.scale.z);
-            int color = 0xFF000000 | data.getColor();
-            for (ModelPart modelpart : children.values()) {
-                modelpart.render(mStack, c, lightmapUV, OverlayTexture.NO_OVERLAY, color);
+        try {
+            if (this.model != null) {
+                Map<String, ModelPart> children = this.modelMixin.getChildren();
+                this.model.translateAndRotate(mStack);
+                float f = 0.0625f;
+                mStack.translate(-this.rotatePoint.x * f, -this.rotatePoint.y * f, -this.rotatePoint.z * f);
+                mStack.scale(this.scale.x, this.scale.y, this.scale.z);
+                int color = 0xFF000000 | data.getColor();
+                for (ModelPart modelpart : children.values()) {
+                    modelpart.render(noppes.mpm.client.RenderStateScope.copyPose(mStack), c, lightmapUV, OverlayTexture.NO_OVERLAY, color);
+                }
             }
+        } finally {
+            mStack.popPose();
         }
-        mStack.popPose();
     }
 
     @Override

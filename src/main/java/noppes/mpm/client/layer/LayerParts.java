@@ -57,99 +57,130 @@ extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
             if (!(part.clientData instanceof MpmPartDataClient)) {
                 part.clientData = new MpmPartDataClient<>();
             }
-            this.rotate((MpmPartDataClient)part.clientData, data, partc, player, (PlayerModel)this.getParentModel(), limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
-            LayerParts.renderPart(part, partc, mStack, typeBuffer, lightmapUV, player, (PlayerModel)this.getParentModel(), data);
+            try (var scope = partc.saveRenderState()) {
+                this.rotate((MpmPartDataClient)part.clientData, data, partc, player, (PlayerModel)this.getParentModel(), limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
+                LayerParts.renderPart(part, partc, mStack, typeBuffer, lightmapUV, player, (PlayerModel)this.getParentModel(), data);
+            }
         }
         data.startMoveAnimation = false;
         data.startAnimation = false;
     }
 
     public static void renderPart(MpmPartData data, MpmPartAbstractClient partc, PoseStack mStack, MultiBufferSource typeBuffer, int lightmapUV, AbstractClientPlayer player, PlayerModel model, ModelData pdata) {
+        var visibility = new java.util.IdentityHashMap<ModelPartWrapper, Boolean>();
+        for (String name : new String[]{"left_arm", "right_arm", "left_leg", "right_leg"}) {
+            ModelPartWrapper part = partc.getPart(name);
+            if (part != null) visibility.put(part, part.isVisible());
+        }
+        try {
+            renderPartScoped(data, partc, mStack, typeBuffer, lightmapUV, player, model, pdata);
+        } finally {
+            visibility.forEach(ModelPartWrapper::setVisible);
+        }
+    }
+
+    private static void renderPartScoped(MpmPartData data, MpmPartAbstractClient partc, PoseStack mStack,
+            MultiBufferSource typeBuffer, int lightmapUV, AbstractClientPlayer player, PlayerModel model, ModelData pdata) {
         ModelPartConfig config;
         ModelPartWrapper lmodelPart;
         ModelPartWrapper rmodelPart;
         mStack.pushPose();
-        boolean shouldRender = true;
-        if (partc.bodyPart == BodyPart.HEAD) {
-            model.head.translateAndRotate(mStack);
-        }
-        if (partc.bodyPart == BodyPart.BODY) {
-            model.body.translateAndRotate(mStack);
-        }
-        if (partc.bodyPart == BodyPart.LEGS) {
-            rmodelPart = partc.getPart("right_leg");
-            lmodelPart = partc.getPart("left_leg");
-            if (rmodelPart != null) {
-                shouldRender = false;
-                mStack.pushPose();
-                config = pdata.getPartConfig(EnumParts.LEG_RIGHT);
-                mStack.translate(0.0f, config.transY * 2.0f, 0.0f);
-                mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
-                if (lmodelPart != null) {
-                    lmodelPart.setVisible(false);
-                }
-                rmodelPart.setVisible(true);
-                partc.render(data, mStack, typeBuffer, lightmapUV, player);
-                mStack.popPose();
+        try {
+            boolean shouldRender = true;
+            if (partc.bodyPart == BodyPart.HEAD) {
+                model.head.translateAndRotate(mStack);
             }
-            if (lmodelPart != null) {
-                shouldRender = false;
-                mStack.pushPose();
-                config = pdata.getPartConfig(EnumParts.LEG_LEFT);
-                mStack.translate(0.0f, config.transY * 2.0f, 0.0f);
-                mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
+            if (partc.bodyPart == BodyPart.BODY) {
+                model.body.translateAndRotate(mStack);
+            }
+            if (partc.bodyPart == BodyPart.LEGS) {
+                rmodelPart = partc.getPart("right_leg");
+                lmodelPart = partc.getPart("left_leg");
                 if (rmodelPart != null) {
-                    rmodelPart.setVisible(false);
+                    shouldRender = false;
+                    mStack.pushPose();
+                    try {
+                        config = pdata.getPartConfig(EnumParts.LEG_RIGHT);
+                        mStack.translate(0.0f, config.transY * 2.0f, 0.0f);
+                        mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
+                        if (lmodelPart != null) {
+                            lmodelPart.setVisible(false);
+                        }
+                        rmodelPart.setVisible(true);
+                        partc.render(data, mStack, typeBuffer, lightmapUV, player);
+                    } finally {
+                        mStack.popPose();
+                    }
                 }
-                lmodelPart.setVisible(true);
-                partc.render(data, mStack, typeBuffer, lightmapUV, player);
-                mStack.popPose();
+                if (lmodelPart != null) {
+                    shouldRender = false;
+                    mStack.pushPose();
+                    try {
+                        config = pdata.getPartConfig(EnumParts.LEG_LEFT);
+                        mStack.translate(0.0f, config.transY * 2.0f, 0.0f);
+                        mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
+                        if (rmodelPart != null) {
+                            rmodelPart.setVisible(false);
+                        }
+                        lmodelPart.setVisible(true);
+                        partc.render(data, mStack, typeBuffer, lightmapUV, player);
+                    } finally {
+                        mStack.popPose();
+                    }
+                }
+                if (shouldRender) {
+                    config = pdata.getPartConfig(EnumParts.LEG_LEFT);
+                    mStack.translate(0.0f, config.transY * 2.0f, 0.0f);
+                    mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
+                }
+            }
+            if (partc.bodyPart == BodyPart.ARMS) {
+                rmodelPart = partc.getPart("right_arm");
+                lmodelPart = partc.getPart("left_arm");
+                if (rmodelPart != null) {
+                    shouldRender = false;
+                    mStack.pushPose();
+                    try {
+                        config = pdata.getPartConfig(EnumParts.ARM_RIGHT);
+                        mStack.translate(0.0f, config.transY + (1.0f - config.scaleY) * 0.125f, 0.0f);
+                        mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
+                        if (lmodelPart != null) {
+                            lmodelPart.setVisible(false);
+                        }
+                        rmodelPart.setVisible(true);
+                        partc.render(data, mStack, typeBuffer, lightmapUV, player);
+                    } finally {
+                        mStack.popPose();
+                    }
+                }
+                if (lmodelPart != null) {
+                    shouldRender = false;
+                    mStack.pushPose();
+                    try {
+                        config = pdata.getPartConfig(EnumParts.ARM_LEFT);
+                        mStack.translate(0.0f, config.transY + (1.0f - config.scaleY) * 0.125f, 0.0f);
+                        mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
+                        if (rmodelPart != null) {
+                            rmodelPart.setVisible(false);
+                        }
+                        lmodelPart.setVisible(true);
+                        partc.render(data, mStack, typeBuffer, lightmapUV, player);
+                    } finally {
+                        mStack.popPose();
+                    }
+                }
+                if (shouldRender) {
+                    config = pdata.getPartConfig(EnumParts.ARM_LEFT);
+                    mStack.translate(0.0f, config.transY + (1.0f - config.scaleY) * 0.125f, 0.0f);
+                    mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
+                }
             }
             if (shouldRender) {
-                config = pdata.getPartConfig(EnumParts.LEG_LEFT);
-                mStack.translate(0.0f, config.transY * 2.0f, 0.0f);
-                mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
-            }
-        }
-        if (partc.bodyPart == BodyPart.ARMS) {
-            rmodelPart = partc.getPart("right_arm");
-            lmodelPart = partc.getPart("left_arm");
-            if (rmodelPart != null) {
-                shouldRender = false;
-                mStack.pushPose();
-                config = pdata.getPartConfig(EnumParts.ARM_RIGHT);
-                mStack.translate(0.0f, config.transY + (1.0f - config.scaleY) * 0.125f, 0.0f);
-                mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
-                if (lmodelPart != null) {
-                    lmodelPart.setVisible(false);
-                }
-                rmodelPart.setVisible(true);
                 partc.render(data, mStack, typeBuffer, lightmapUV, player);
-                mStack.popPose();
             }
-            if (lmodelPart != null) {
-                shouldRender = false;
-                mStack.pushPose();
-                config = pdata.getPartConfig(EnumParts.ARM_LEFT);
-                mStack.translate(0.0f, config.transY + (1.0f - config.scaleY) * 0.125f, 0.0f);
-                mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
-                if (rmodelPart != null) {
-                    rmodelPart.setVisible(false);
-                }
-                lmodelPart.setVisible(true);
-                partc.render(data, mStack, typeBuffer, lightmapUV, player);
-                mStack.popPose();
-            }
-            if (shouldRender) {
-                config = pdata.getPartConfig(EnumParts.ARM_LEFT);
-                mStack.translate(0.0f, config.transY + (1.0f - config.scaleY) * 0.125f, 0.0f);
-                mStack.scale(config.scaleX, config.scaleY, config.scaleZ);
-            }
+        } finally {
+            mStack.popPose();
         }
-        if (shouldRender) {
-            partc.render(data, mStack, typeBuffer, lightmapUV, player);
-        }
-        mStack.popPose();
     }
 
     private void rotate(MpmPartDataClient partData, ModelData playerdata, MpmPartAbstractClient part, AbstractClientPlayer player, PlayerModel base, float limbSwing, float limbSwingAmount, float partialTicks, float age, float netHeadYaw, float headPitch) {

@@ -31,36 +31,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value={AbstractClientPlayer.class})
 public class AbstractClientPlayerEntityMixin {
-    @Inject(at={@At(value="HEAD")}, method={"getModelName"}, cancellable=true)
-    private void getModelName(CallbackInfoReturnable<String> cir) {
-        ModelData data = ModelData.get((Player)(Object)this);
-        if (data != null && data.modelType != 0) {
-            if (data.modelType == 1) {
-                cir.setReturnValue("default");
-            } else {
-                cir.setReturnValue("slim");
-            }
-            cir.cancel();
-        }
-    }
-
-    @Inject(at={@At(value="HEAD")}, method={"getSkinTextureLocation"}, cancellable=true)
-    private void getTextureLocation(CallbackInfoReturnable<ResourceLocation> cir) {
-        ResourceLocation location;
-        EntityRenderer renderer;
-        Player player = (Player)(Object)this;
-        ModelData data = ModelData.get(player);
-        SkinUtil.load(data, player);
-        if (data.resourceLoaded && data.resourceLocation != null) {
-            cir.setReturnValue(data.resourceLocation);
-            cir.cancel();
-        }
-        if (!cir.isCancelled() && data.getEntity(player) != null && (renderer = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer((Entity)data.getEntity(player))) != null && (location = renderer.getTextureLocation((Entity)data.getEntity(player))) != null) {
-            cir.setReturnValue(location);
-            cir.cancel();
-        }
-    }
-
     /**
      * In 1.21.1 the player skin is exposed as a {@link PlayerSkin} record.  A
      * renderer-specific texture override does not update this record, so mods

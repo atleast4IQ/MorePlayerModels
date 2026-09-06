@@ -62,7 +62,7 @@ extends LayerInterface {
         BakedModel model = minecraft.getItemRenderer().getItemModelShaper().getItemModel(itemstack);
         ItemTransform p_175034_1_ = model.getTransforms().thirdPersonRightHand;
         mStack.scale(p_175034_1_.scale.x(), p_175034_1_.scale.y(), p_175034_1_.scale.z());
-        minecraft.getItemRenderer().renderStatic((LivingEntity)this.player, itemstack, ItemDisplayContext.NONE, false, mStack, typeBuffer, this.player.level(), lightmapUV, LivingEntityRenderer.getOverlayCoords((LivingEntity)this.player, (float)0.0f), this.player.getId() + ItemDisplayContext.NONE.ordinal());
+        minecraft.getItemRenderer().renderStatic((LivingEntity)this.player, itemstack, ItemDisplayContext.NONE, false, noppes.mpm.client.RenderStateScope.copyPose(mStack), typeBuffer, this.player.level(), lightmapUV, LivingEntityRenderer.getOverlayCoords((LivingEntity)this.player, (float)0.0f), this.player.getId() + ItemDisplayContext.NONE.ordinal());
     }
 
     @Override

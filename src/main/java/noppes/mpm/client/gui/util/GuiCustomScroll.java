@@ -139,12 +139,15 @@ extends Screen {
         }
         PoseStack poseStack = graphics.pose();
         poseStack.pushPose();
-        poseStack.translate((float)this.guiLeft, (float)this.guiTop, 0.0f);
-        if (this.selectable) {
-            this.hover = this.getMouseOver(mouseX, mouseY);
+        try {
+            poseStack.translate((float)this.guiLeft, (float)this.guiTop, 0.0f);
+            if (this.selectable) {
+                this.hover = this.getMouseOver(mouseX, mouseY);
+            }
+            this.drawItems(graphics);
+        } finally {
+            poseStack.popPose();
         }
-        this.drawItems(graphics);
-        poseStack.popPose();
         if (this.scrollHeight < this.height - 8) {
             mouseX -= this.guiLeft;
             mouseY -= this.guiTop;

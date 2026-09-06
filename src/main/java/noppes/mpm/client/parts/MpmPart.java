@@ -90,7 +90,7 @@ public class MpmPart {
         }
         for (Map.Entry entry : json.entrySet()) {
             try {
-                EnumAnimation animation = EnumAnimation.valueOf(((String)entry.getKey()).toUpperCase());
+                EnumAnimation animation = EnumAnimation.valueOf(((String)entry.getKey()).toUpperCase(java.util.Locale.ROOT));
                 JsonObject animationData = ((JsonElement)entry.getValue()).getAsJsonObject();
                 int length = animationData.get("animation_length").getAsInt();
                 float speed = animationData.get("animation_speed").getAsFloat();

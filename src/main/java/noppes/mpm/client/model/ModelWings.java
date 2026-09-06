@@ -101,11 +101,14 @@ extends Model {
 
     public void render(Entity entityIn, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch, PoseStack mStack, VertexConsumer ivertex, int lightmapUV) {
         mStack.pushPose();
-        if (entityIn.isCrouching()) {
-            mStack.translate(0.0f, 0.2f, 0.0f);
+        try {
+            if (entityIn.isCrouching()) {
+                mStack.translate(0.0f, 0.2f, 0.0f);
+            }
+            this.renderWings(entityIn, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, mStack, ivertex, lightmapUV);
+        } finally {
+            mStack.popPose();
         }
-        this.renderWings(entityIn, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, mStack, ivertex, lightmapUV);
-        mStack.popPose();
     }
 
     public void renderWings(Entity player, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch, PoseStack mStack, VertexConsumer ivertex, int lightmapUV) {
@@ -115,17 +118,23 @@ extends Model {
         float y = Mth.sin((float)(ageInTicks * 0.35f));
         float flap = y * 0.5f * speed;
         mStack.pushPose();
-        if (flapWings) {
-            Axis.YP.rotationDegrees(flap * 20.0f);
+        try {
+            if (flapWings) {
+                Axis.YP.rotationDegrees(flap * 20.0f);
+            }
+            this.left_wing_1.render(mStack, ivertex, lightmapUV, OverlayTexture.NO_OVERLAY);
+        } finally {
+            mStack.popPose();
         }
-        this.left_wing_1.render(mStack, ivertex, lightmapUV, OverlayTexture.NO_OVERLAY);
-        mStack.popPose();
         mStack.pushPose();
-        if (flapWings) {
-            Axis.YP.rotationDegrees(-flap * 20.0f);
+        try {
+            if (flapWings) {
+                Axis.YP.rotationDegrees(-flap * 20.0f);
+            }
+            this.right_wing_1.render(mStack, ivertex, lightmapUV, OverlayTexture.NO_OVERLAY);
+        } finally {
+            mStack.popPose();
         }
-        this.right_wing_1.render(mStack, ivertex, lightmapUV, OverlayTexture.NO_OVERLAY);
-        mStack.popPose();
     }
 
     public void setRotateAngle(NopModelPart modelRenderer, float x, float y, float z) {

@@ -168,8 +168,7 @@ implements ICustomScrollListener {
         } else {
             MPMEntityUtil.copy((LivingEntity)this.minecraft.player, (LivingEntity)this.player);
         }
-        RenderEvent.entityResource = this.playerdata.resourceLocation;
-        this.renderEntityPreview(graphics, entity, this.guiLeft + 310, this.guiTop + 140, 60, x, y);
+        this.renderEntityPreview(graphics, entity, this.guiLeft + 310, this.guiTop + 140, 60, x, y, this.playerdata.resourceLocation);
     }
 
     @Override

@@ -39,22 +39,25 @@ extends CapeLayer {
         ModelData data = ModelData.get((Player)player);
         ModelPartConfig config = data.getPartConfig(EnumParts.BODY);
         mStack.pushPose();
-        if (player.isCrouching() && data.moveAnimation != EnumAnimation.CRAWL) {
-            mStack.translate(0.0, 0.0, (double)(-2.0f + config.scaleZ) * 0.0625);
-        }
-        mStack.translate((double)config.transX, (double)config.transY, (double)config.transZ + (double)(-1.0f + config.scaleZ) * 0.0625);
-        mStack.scale(config.scaleX, config.scaleY, 1.0f);
-        if (data.moveAnimation == EnumAnimation.CRAWL) {
-            int rotation = 78;
-            if (player.isCrouching()) {
-                mStack.mulPose(Axis.XP.rotationDegrees(-25.0f));
+        try {
+            if (player.isCrouching() && data.moveAnimation != EnumAnimation.CRAWL) {
+                mStack.translate(0.0, 0.0, (double)(-2.0f + config.scaleZ) * 0.0625);
             }
+            mStack.translate((double)config.transX, (double)config.transY, (double)config.transZ + (double)(-1.0f + config.scaleZ) * 0.0625);
+            mStack.scale(config.scaleX, config.scaleY, 1.0f);
+            if (data.moveAnimation == EnumAnimation.CRAWL) {
+                int rotation = 78;
+                if (player.isCrouching()) {
+                    mStack.mulPose(Axis.XP.rotationDegrees(-25.0f));
+                }
+            }
+            if (player.hurtTime > 0 || player.deathTime > 0) {
+                // empty if block
+            }
+            super.render(noppes.mpm.client.RenderStateScope.copyPose(mStack), renderTypeBuffer, lightmapUV, player, limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
+        } finally {
+            mStack.popPose();
         }
-        if (player.hurtTime > 0 || player.deathTime > 0) {
-            // empty if block
-        }
-        super.render(mStack, renderTypeBuffer, lightmapUV, player, limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
-        mStack.popPose();
     }
 }
 

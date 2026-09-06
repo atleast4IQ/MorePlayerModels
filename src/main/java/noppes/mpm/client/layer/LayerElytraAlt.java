@@ -36,7 +36,7 @@ extends ElytraLayer<T, M> {
 
     public void render(PoseStack mStack, MultiBufferSource renderTypeBuffer, int lightmapUV, T entityLiving, float limbSwing, float limbSwingAmount, float partialTicks, float age, float netHeadYaw, float headPitch) {
         if (!(entityLiving instanceof Player)) {
-            super.render(mStack, renderTypeBuffer, lightmapUV, entityLiving, limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
+            super.render(noppes.mpm.client.RenderStateScope.copyPose(mStack), renderTypeBuffer, lightmapUV, entityLiving, limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
             return;
         }
         Player player = (Player)entityLiving;
@@ -46,22 +46,25 @@ extends ElytraLayer<T, M> {
         }
         ModelPartConfig config = data.getPartConfig(EnumParts.BODY);
         mStack.pushPose();
-        if (player.isCrouching() && data.moveAnimation != EnumAnimation.CRAWL) {
-            mStack.translate(0.0f, 0.0f, (-2.0f + config.scaleZ) * 0.0625f);
-        }
-        mStack.translate(config.transX, config.transY, config.transZ + (-1.0f + config.scaleZ) * 0.0625f);
-        mStack.scale(config.scaleX, config.scaleY, 1.0f);
-        if (data.moveAnimation == EnumAnimation.CRAWL) {
-            int rotation = 78;
-            if (player.isCrouching()) {
-                mStack.mulPose(Axis.XP.rotationDegrees(-25.0f));
+        try {
+            if (player.isCrouching() && data.moveAnimation != EnumAnimation.CRAWL) {
+                mStack.translate(0.0f, 0.0f, (-2.0f + config.scaleZ) * 0.0625f);
             }
+            mStack.translate(config.transX, config.transY, config.transZ + (-1.0f + config.scaleZ) * 0.0625f);
+            mStack.scale(config.scaleX, config.scaleY, 1.0f);
+            if (data.moveAnimation == EnumAnimation.CRAWL) {
+                int rotation = 78;
+                if (player.isCrouching()) {
+                    mStack.mulPose(Axis.XP.rotationDegrees(-25.0f));
+                }
+            }
+            if (player.hurtTime > 0 || player.deathTime > 0) {
+                // empty if block
+            }
+            super.render(noppes.mpm.client.RenderStateScope.copyPose(mStack), renderTypeBuffer, lightmapUV, entityLiving, limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
+        } finally {
+            mStack.popPose();
         }
-        if (player.hurtTime > 0 || player.deathTime > 0) {
-            // empty if block
-        }
-        super.render(mStack, renderTypeBuffer, lightmapUV, entityLiving, limbSwing, limbSwingAmount, partialTicks, age, netHeadYaw, headPitch);
-        mStack.popPose();
     }
 }
 

@@ -69,88 +69,98 @@ extends MpmPartAbstractClient {
     @Override
     public void render(MpmPartData data, PoseStack mStack, MultiBufferSource typeBuffer, int lightmapUV, AbstractClientPlayer player) {
         ModelEyeData eyeData = (ModelEyeData)data;
+        NopVector3f previousLid1 = lid1.scale, previousLid2 = lid2.scale;
+        NopVector3f previousBrow1 = brows1.scale, previousBrow2 = brows2.scale;
         mStack.pushPose();
-        mStack.translate((float)((ModelEyeData)data).eyePos.x * -0.0625f, (float)((ModelEyeData)data).eyePos.y * -0.0625f, 0.0f);
-        float offset = 0.0f;
-        if (eyeData.blinkStart > 0L && player.isAlive()) {
-            float f = (float)(System.currentTimeMillis() - eyeData.blinkStart) / 150.0f;
-            if (f > 1.0f) {
-                f = 2.0f - f;
+        try {
+            mStack.translate((float)((ModelEyeData)data).eyePos.x * -0.0625f, (float)((ModelEyeData)data).eyePos.y * -0.0625f, 0.0f);
+            float offset = 0.0f;
+            if (eyeData.blinkStart > 0L && player.isAlive()) {
+                float f = (float)(System.currentTimeMillis() - eyeData.blinkStart) / 150.0f;
+                if (f > 1.0f) {
+                    f = 2.0f - f;
+                }
+                if (f < 0.0f) {
+                    eyeData.blinkStart = 0L;
+                    f = 0.0f;
+                }
+                offset = (float)(eyeData.eyeSize + 1) * EasingFunctions.easeInCubic(f);
             }
-            if (f < 0.0f) {
-                eyeData.blinkStart = 0L;
-                f = 0.0f;
-            }
-            offset = (float)(eyeData.eyeSize + 1) * EasingFunctions.easeInCubic(f);
-        }
-        if (this.type == 0 || this.type == 1) {
-            if (eyeData.skinType == 1) {
-                (eyeData.eyeSize == 0 ? sclera1 : scleraBig1).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)sclera)), lightmapUV, OverlayTexture.NO_OVERLAY);
-            } else if (eyeData.skinType == 2) {
+            if (this.type == 0 || this.type == 1) {
+                if (eyeData.skinType == 1) {
+                    (eyeData.eyeSize == 0 ? sclera1 : scleraBig1).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)sclera)), lightmapUV, OverlayTexture.NO_OVERLAY);
+                } else if (eyeData.skinType == 2) {
+                    if (eyeData.mirror) {
+                        (eyeData.eyeSize == 0 ? sclera1M : scleraBig1M).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)eyeData.getUrlTexture())), lightmapUV, OverlayTexture.NO_OVERLAY);
+                    } else {
+                        (eyeData.eyeSize == 0 ? sclera1 : scleraBig1).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)eyeData.getUrlTexture())), lightmapUV, OverlayTexture.NO_OVERLAY);
+                    }
+                }
                 if (eyeData.mirror) {
-                    (eyeData.eyeSize == 0 ? sclera1M : scleraBig1M).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)eyeData.getUrlTexture())), lightmapUV, OverlayTexture.NO_OVERLAY);
-                } else {
-                    (eyeData.eyeSize == 0 ? sclera1 : scleraBig1).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)eyeData.getUrlTexture())), lightmapUV, OverlayTexture.NO_OVERLAY);
+                    mStack.translate(-0.0625, 0.0, 0.0);
+                }
+                if (eyeData.skinType == 1) {
+                    (eyeData.eyeSize == 0 ? pupils1 : pupilsBig1).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)pupils)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.color.x, eyeData.color.y, eyeData.color.z, 1.0f);
+                }
+                if (eyeData.glint) {
+                    glint1.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)glint)), lightmapUV, OverlayTexture.NO_OVERLAY);
+                }
+                if (eyeData.mirror) {
+                    mStack.translate(0.0625, 0.0, 0.0);
+                }
+                if (offset > 0.0f) {
+                    MpmPartEyes.lid1.scale = new NopVector3f(1.0f, offset, 1.0f);
+                    lid1.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)brows)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.lidColor.x, eyeData.lidColor.y, eyeData.lidColor.z, 1.0f);
                 }
             }
-            if (eyeData.mirror) {
-                mStack.translate(-0.0625, 0.0, 0.0);
-            }
-            if (eyeData.skinType == 1) {
-                (eyeData.eyeSize == 0 ? pupils1 : pupilsBig1).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)pupils)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.color.x, eyeData.color.y, eyeData.color.z, 1.0f);
-            }
-            if (eyeData.glint) {
-                glint1.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)glint)), lightmapUV, OverlayTexture.NO_OVERLAY);
-            }
-            if (eyeData.mirror) {
-                mStack.translate(0.0625, 0.0, 0.0);
-            }
-            if (offset > 0.0f) {
-                MpmPartEyes.lid1.scale = new NopVector3f(1.0f, offset, 1.0f);
-                lid1.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)brows)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.lidColor.x, eyeData.lidColor.y, eyeData.lidColor.z, 1.0f);
-            }
-        }
-        mStack.translate((float)((ModelEyeData)data).eyePos.x * 0.0625f * 2.0f, 0.0f, 0.0f);
-        if (this.type == 0 || this.type == 2) {
-            if (eyeData.skinType == 1) {
-                (eyeData.eyeSize == 0 ? sclera2 : scleraBig2).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)sclera)), lightmapUV, OverlayTexture.NO_OVERLAY);
-            } else if (eyeData.skinType == 2) {
+            mStack.translate((float)((ModelEyeData)data).eyePos.x * 0.0625f * 2.0f, 0.0f, 0.0f);
+            if (this.type == 0 || this.type == 2) {
+                if (eyeData.skinType == 1) {
+                    (eyeData.eyeSize == 0 ? sclera2 : scleraBig2).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)sclera)), lightmapUV, OverlayTexture.NO_OVERLAY);
+                } else if (eyeData.skinType == 2) {
+                    if (eyeData.mirror) {
+                        (eyeData.eyeSize == 0 ? sclera2M : scleraBig2M).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)eyeData.getUrlTexture())), lightmapUV, OverlayTexture.NO_OVERLAY);
+                    } else {
+                        (eyeData.eyeSize == 0 ? sclera2 : scleraBig2).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)eyeData.getUrlTexture())), lightmapUV, OverlayTexture.NO_OVERLAY);
+                    }
+                }
                 if (eyeData.mirror) {
-                    (eyeData.eyeSize == 0 ? sclera2M : scleraBig2M).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)eyeData.getUrlTexture())), lightmapUV, OverlayTexture.NO_OVERLAY);
-                } else {
-                    (eyeData.eyeSize == 0 ? sclera2 : scleraBig2).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)eyeData.getUrlTexture())), lightmapUV, OverlayTexture.NO_OVERLAY);
+                    mStack.translate(0.0625, 0.0, 0.0);
+                }
+                if (eyeData.skinType == 1) {
+                    (eyeData.eyeSize == 0 ? pupils2 : pupilsBig2).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)pupils)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.color.x, eyeData.color.y, eyeData.color.z, 1.0f);
+                }
+                if (eyeData.glint) {
+                    glint2.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)glint)), lightmapUV, OverlayTexture.NO_OVERLAY);
+                }
+                if (eyeData.mirror) {
+                    mStack.translate(-0.0625, 0.0, 0.0);
+                }
+                if (offset > 0.0f) {
+                    MpmPartEyes.lid2.scale = new NopVector3f(1.0f, offset, 1.0f);
+                    lid2.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)brows)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.lidColor.x, eyeData.lidColor.y, eyeData.lidColor.z, 1.0f);
                 }
             }
-            if (eyeData.mirror) {
-                mStack.translate(0.0625, 0.0, 0.0);
+            mStack.pushPose();
+            try {
+                mStack.translate(0.0f, offset * 0.0625f, 0.0f);
+                if (this.type == 0 || this.type == 2) {
+                    MpmPartEyes.brows2.scale = eyeData.browThickness;
+                    brows2.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)brows)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.browColor.x, eyeData.browColor.y, eyeData.browColor.z, 1.0f);
+                }
+                mStack.translate((float)((ModelEyeData)data).eyePos.x * -0.0625f * 2.0f, 0.0f, 0.0f);
+                if (this.type == 0 || this.type == 1) {
+                    MpmPartEyes.brows1.scale = eyeData.browThickness;
+                    brows1.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)brows)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.browColor.x, eyeData.browColor.y, eyeData.browColor.z, 1.0f);
+                }
+            } finally {
+                mStack.popPose();
             }
-            if (eyeData.skinType == 1) {
-                (eyeData.eyeSize == 0 ? pupils2 : pupilsBig2).render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)pupils)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.color.x, eyeData.color.y, eyeData.color.z, 1.0f);
-            }
-            if (eyeData.glint) {
-                glint2.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)glint)), lightmapUV, OverlayTexture.NO_OVERLAY);
-            }
-            if (eyeData.mirror) {
-                mStack.translate(-0.0625, 0.0, 0.0);
-            }
-            if (offset > 0.0f) {
-                MpmPartEyes.lid2.scale = new NopVector3f(1.0f, offset, 1.0f);
-                lid2.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)brows)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.lidColor.x, eyeData.lidColor.y, eyeData.lidColor.z, 1.0f);
-            }
+        } finally {
+            lid1.scale = previousLid1; lid2.scale = previousLid2;
+            brows1.scale = previousBrow1; brows2.scale = previousBrow2;
+            mStack.popPose();
         }
-        mStack.pushPose();
-        mStack.translate(0.0f, offset * 0.0625f, 0.0f);
-        if (this.type == 0 || this.type == 2) {
-            MpmPartEyes.brows2.scale = eyeData.browThickness;
-            brows2.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)brows)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.browColor.x, eyeData.browColor.y, eyeData.browColor.z, 1.0f);
-        }
-        mStack.translate((float)((ModelEyeData)data).eyePos.x * -0.0625f * 2.0f, 0.0f, 0.0f);
-        if (this.type == 0 || this.type == 1) {
-            MpmPartEyes.brows1.scale = eyeData.browThickness;
-            brows1.render(mStack, typeBuffer.getBuffer(RenderType.entityTranslucent((ResourceLocation)brows)), lightmapUV, OverlayTexture.NO_OVERLAY, eyeData.browColor.x, eyeData.browColor.y, eyeData.browColor.z, 1.0f);
-        }
-        mStack.popPose();
-        mStack.popPose();
     }
 }
 

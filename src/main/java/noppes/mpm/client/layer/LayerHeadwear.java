@@ -47,10 +47,14 @@ implements LayerPreRender {
         }
         this.base.head.translateAndRotate(mStack);
         ResourceLocation texture = SkinUtil.getTexture(this.player);
-        Model2DRenderer.textureOverride = texture;
-        VertexConsumer ivertex = typeBuffer.getBuffer(RenderType.entityTranslucent(texture));
-        this.headwear.render(mStack, ivertex, lightmapUV, OverlayTexture.NO_OVERLAY);
-        Model2DRenderer.textureOverride = null;
+        ResourceLocation previousTexture = Model2DRenderer.textureOverride;
+        try {
+            Model2DRenderer.textureOverride = texture;
+            VertexConsumer ivertex = typeBuffer.getBuffer(RenderType.entityTranslucent(texture));
+            this.headwear.render(mStack, ivertex, lightmapUV, OverlayTexture.NO_OVERLAY);
+        } finally {
+            Model2DRenderer.textureOverride = previousTexture;
+        }
     }
 
     @Override

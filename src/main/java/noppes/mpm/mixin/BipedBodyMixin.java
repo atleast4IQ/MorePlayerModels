@@ -13,6 +13,9 @@
  */
 package noppes.mpm.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.world.entity.LivingEntity;
@@ -27,6 +30,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value={HumanoidModel.class})
 public class BipedBodyMixin<T extends LivingEntity> {
+    @WrapMethod(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V")
+    private void mpm$animationScope(T entity, float swing, float amount, float age, float yaw, float pitch,
+            Operation<Void> original) {
+        var previousData = ClientProxy.data;
+        var previousModel = ClientProxy.playerModel;
+        try {
+            original.call(entity, swing, amount, age, yaw, pitch);
+        } finally {
+            ClientProxy.data = previousData;
+            ClientProxy.playerModel = previousModel;
+        }
+    }
+
     @Inject(at={@At(value="HEAD")}, method={"setupAnim"})
     private void setupAnimPre(T livingEntity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch, CallbackInfo callbackInfo) {
         HumanoidModel bipedModel = (HumanoidModel)(Object)this;

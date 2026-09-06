@@ -78,6 +78,8 @@ import noppes.mpm.packets.client.PacketPlayerDataSend;
 import noppes.mpm.util.NoppesStringUtils;
 
 public class CommandMPM {
+    /** Vanilla operator level for commands that change other players' MPM data. */
+    private static final int ADMIN_PERMISSION_LEVEL = 2;
     private static List<String> entities;
     private static ArgumentType<EnumAnimation> animationArgumentType;
     public static final SuggestionProvider<CommandSourceStack> ENTITIES;
@@ -90,7 +92,7 @@ public class CommandMPM {
         }
         entities.add("clear");
         LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal("mpm");
-        CommandMPM.getSubCommands(command.requires(source -> source.hasPermission(0)), buildAspect);
+        CommandMPM.getSubCommands(command.requires(source -> source.hasPermission(ADMIN_PERMISSION_LEVEL)), buildAspect);
         dispatcher.register(command);
     }
 

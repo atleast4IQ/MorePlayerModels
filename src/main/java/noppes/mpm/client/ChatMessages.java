@@ -101,8 +101,7 @@ public class ChatMessages {
         if (messages.isEmpty()) {
             return;
         }
-        RenderSystem.setShaderColor((float)1.0f, (float)1.0f, (float)1.0f, (float)1.0f);
-        RenderSystem.setShader(GameRenderer::getPositionColorLightmapShader);
+        // The buffered RenderTypes select their shader when the batch is drawn.
         if (inRange) {
             this.render(poseStack, typeBuffer, typeBuffer.getBuffer(typeDepth), textscale, false, lightmapUV);
         }
@@ -120,43 +119,46 @@ public class ChatMessages {
         Objects.requireNonNull(font);
         int textYSize = (int)((float)(size * 9) * this.scale);
         poseStack.pushPose();
-        poseStack.translate(0.0f, (float)textYSize * var14, 0.0f);
-        poseStack.scale(textScale, textScale, textScale);
-        poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
-        poseStack.scale(-var14, -var14, var14);
-        int black = depth ? -16777216 : -16777216;
-        int white = depth ? -1140850689 : 0x44FFFFFF;
-        PoseStack.Pose entry = poseStack.last();
-        Matrix4f matrix = entry.pose();
-        this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 2, -2.0f, this.boxLength + 2, textYSize + 1, white, 0.11f);
-        this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 1, -3.0f, this.boxLength + 1, -2.0f, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 1, textYSize + 2, -1.0f, textYSize + 1, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, 3.0f, textYSize + 2, this.boxLength + 1, textYSize + 1, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 3, -1.0f, -this.boxLength - 2, textYSize, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, this.boxLength + 3, -1.0f, this.boxLength + 2, textYSize, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 2, -2.0f, -this.boxLength - 1, -1.0f, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, this.boxLength + 2, -2.0f, this.boxLength + 1, -1.0f, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 2, textYSize + 1, -this.boxLength - 1, textYSize, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, this.boxLength + 2, textYSize + 1, this.boxLength + 1, textYSize, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, 0.0f, textYSize + 1, 3.0f, textYSize + 4, white, 0.11f);
-        this.drawRect(ivertex, matrix, lightmapUV, -1.0f, textYSize + 4, 1.0f, textYSize + 5, white, 0.11f);
-        this.drawRect(ivertex, matrix, lightmapUV, -1.0f, textYSize + 1, 0.0f, textYSize + 4, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, 3.0f, textYSize + 1, 4.0f, textYSize + 3, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, 2.0f, textYSize + 3, 3.0f, textYSize + 4, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, 1.0f, textYSize + 4, 2.0f, textYSize + 5, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, -2.0f, textYSize + 4, -1.0f, textYSize + 5, black, 0.1f);
-        this.drawRect(ivertex, matrix, lightmapUV, -2.0f, textYSize + 5, 1.0f, textYSize + 6, black, 0.1f);
-        poseStack.scale(this.scale, this.scale, this.scale);
-        int index = 0;
-        for (TextBlockClient block : this.messages.values()) {
-            for (Component chat : block.lines) {
-                float f = -font.width((FormattedText)chat) / 2;
-                Objects.requireNonNull(font);
-                font.drawInBatch(chat, f, (float)(index * 9), black, false, matrix, typeBuffer, depth ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL, 0, lightmapUV);
-                ++index;
+        try {
+            poseStack.translate(0.0f, (float)textYSize * var14, 0.0f);
+            poseStack.scale(textScale, textScale, textScale);
+            poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
+            poseStack.scale(-var14, -var14, var14);
+            int black = depth ? -16777216 : -16777216;
+            int white = depth ? -1140850689 : 0x44FFFFFF;
+            PoseStack.Pose entry = poseStack.last();
+            Matrix4f matrix = entry.pose();
+            this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 2, -2.0f, this.boxLength + 2, textYSize + 1, white, 0.11f);
+            this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 1, -3.0f, this.boxLength + 1, -2.0f, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 1, textYSize + 2, -1.0f, textYSize + 1, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, 3.0f, textYSize + 2, this.boxLength + 1, textYSize + 1, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 3, -1.0f, -this.boxLength - 2, textYSize, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, this.boxLength + 3, -1.0f, this.boxLength + 2, textYSize, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 2, -2.0f, -this.boxLength - 1, -1.0f, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, this.boxLength + 2, -2.0f, this.boxLength + 1, -1.0f, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, -this.boxLength - 2, textYSize + 1, -this.boxLength - 1, textYSize, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, this.boxLength + 2, textYSize + 1, this.boxLength + 1, textYSize, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, 0.0f, textYSize + 1, 3.0f, textYSize + 4, white, 0.11f);
+            this.drawRect(ivertex, matrix, lightmapUV, -1.0f, textYSize + 4, 1.0f, textYSize + 5, white, 0.11f);
+            this.drawRect(ivertex, matrix, lightmapUV, -1.0f, textYSize + 1, 0.0f, textYSize + 4, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, 3.0f, textYSize + 1, 4.0f, textYSize + 3, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, 2.0f, textYSize + 3, 3.0f, textYSize + 4, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, 1.0f, textYSize + 4, 2.0f, textYSize + 5, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, -2.0f, textYSize + 4, -1.0f, textYSize + 5, black, 0.1f);
+            this.drawRect(ivertex, matrix, lightmapUV, -2.0f, textYSize + 5, 1.0f, textYSize + 6, black, 0.1f);
+            poseStack.scale(this.scale, this.scale, this.scale);
+            int index = 0;
+            for (TextBlockClient block : this.messages.values()) {
+                for (Component chat : block.lines) {
+                    float f = -font.width((FormattedText)chat) / 2;
+                    Objects.requireNonNull(font);
+                    font.drawInBatch(chat, f, (float)(index * 9), black, false, matrix, typeBuffer, depth ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL, 0, lightmapUV);
+                    ++index;
+                }
             }
+        } finally {
+            poseStack.popPose();
         }
-        poseStack.popPose();
     }
 
     public void drawRect(VertexConsumer ivertex, Matrix4f matrix, int lightmapUV, float x, float y, float x2, float y2, int color, float z) {
@@ -182,7 +184,7 @@ public class ChatMessages {
 
     private void draw(VertexConsumer ivertex, Matrix4f matrix, int lightmapUV, float x, float y, float z, float red, float green, float blue) {
         Vector4f v = matrix.transform(new Vector4f(x, y, z, 1.0f));
-          ivertex.addVertex(v.x(), v.y(), v.z()).setColor(red, green, blue, 1.0f).setLight(lightmapUV);
+        ivertex.addVertex(v.x(), v.y(), v.z()).setColor(red, green, blue, 1.0f).setLight(lightmapUV);
     }
 
     public static ChatMessages getChatMessages(String username) {

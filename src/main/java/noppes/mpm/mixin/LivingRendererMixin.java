@@ -20,6 +20,14 @@
  */
 package noppes.mpm.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import net.neoforged.bus.api.Event;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.client.event.RenderLivingEvent;
+import noppes.mpm.client.RenderStateScope;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.PlayerModel;
@@ -45,32 +53,42 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value={LivingEntityRenderer.class})
 public class LivingRendererMixin<T extends LivingEntity, M extends EntityModel<T>> {
-    private boolean leftLegVisible;
-    private boolean rightLegVisible;
-    private boolean leftArmVisible;
-    private boolean rightArmVisible;
-    private boolean leftPantsVisible;
-    private boolean rightPantsVisible;
-    private boolean leftSleeveVisible;
-    private boolean rightSleeveVisible;
-    private boolean bodyVisible;
-    private boolean jacketVisible;
-    private boolean headVisible;
-    private boolean hatVisible;
-    private ModelPartState[] mpmPartStates;
+    @WrapMethod(method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V")
+    private void mpm$renderScope(T entity, float yaw, float partialTick, PoseStack poses,
+            MultiBufferSource buffers, int light, Operation<Void> original) {
+        LivingEntityRenderer<?, ?> renderer = (LivingEntityRenderer<?, ?>)(Object)this;
+        try (RenderStateScope scope = new RenderStateScope(entity, renderer.getModel())) {
+            RenderStateScope.renderIsolated(poses,
+                    isolated -> original.call(entity, yaw, partialTick, isolated, buffers, light));
+        }
+    }
+
+    @WrapOperation(
+            method = "render(Lnet/minecraft/world/entity/LivingEntity;FFLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+            at = @At(value = "INVOKE", target = "Lnet/neoforged/bus/api/IEventBus;post(Lnet/neoforged/bus/api/Event;)Lnet/neoforged/bus/api/Event;", ordinal = 0),
+            require = 1)
+    private Event mpm$afterPre(IEventBus bus,
+            Event event,
+            Operation<Event> original) {
+        Event result = original.call(bus, event);
+        if (result instanceof RenderLivingEvent.Pre<?, ?> pre && !pre.isCanceled()) {
+            RenderEvent.prepare(pre);
+        }
+        return result;
+    }
 
     @Inject(at={@At(value="HEAD")}, method={"getRenderType"}, cancellable=true)
     private void getModelName(T livingEntity, boolean p_230496_2_, boolean p_230496_3_, boolean p_230496_4_, CallbackInfoReturnable<RenderType> cir) {
-        if (RenderEvent.entityResource != null) {
+        ResourceLocation texture = RenderEvent.textureFor(livingEntity);
+        if (texture != null) {
             if (p_230496_3_) {
-                cir.setReturnValue(RenderType.itemEntityTranslucentCull((ResourceLocation)RenderEvent.entityResource));
+                cir.setReturnValue(RenderType.itemEntityTranslucentCull((ResourceLocation)texture));
             } else if (p_230496_2_) {
                 LivingEntityRenderer r = (LivingEntityRenderer)(Object)this;
-                cir.setReturnValue(r.getModel().renderType(RenderEvent.entityResource));
+                cir.setReturnValue(r.getModel().renderType(texture));
             } else {
-                cir.setReturnValue((p_230496_4_ ? RenderType.outline((ResourceLocation)RenderEvent.entityResource) : null));
+                cir.setReturnValue((p_230496_4_ ? RenderType.outline((ResourceLocation)texture) : null));
             }
-            RenderEvent.entityResource = null;
             cir.cancel();
         }
     }
@@ -81,18 +99,6 @@ public class LivingRendererMixin<T extends LivingEntity, M extends EntityModel<T
         if (entity instanceof AbstractClientPlayer && r.getModel() instanceof PlayerModel) {
             ModelData data = ModelData.get((Player)entity);
             PlayerModel model = (PlayerModel)r.getModel();
-            this.leftLegVisible = model.leftLeg.visible;
-            this.rightLegVisible = model.rightLeg.visible;
-            this.leftArmVisible = model.leftArm.visible;
-            this.rightArmVisible = model.rightArm.visible;
-            this.leftPantsVisible = model.leftPants.visible;
-            this.rightPantsVisible = model.rightPants.visible;
-            this.leftSleeveVisible = model.leftSleeve.visible;
-            this.rightSleeveVisible = model.rightSleeve.visible;
-            this.bodyVisible = model.body.visible;
-            this.jacketVisible = model.jacket.visible;
-            this.headVisible = model.head.visible;
-            this.hatVisible = model.hat.visible;
             model.leftLeg.visible = model.leftLeg.visible && !data.hiddenParts.contains((Object)BodyPart.LEFT_LEG) && !data.hiddenParts.contains((Object)BodyPart.LEGS);
             model.leftPants.visible = model.leftPants.visible && model.leftLeg.visible;
             model.rightLeg.visible = model.rightLeg.visible && !data.hiddenParts.contains((Object)BodyPart.RIGHT_LEG) && !data.hiddenParts.contains((Object)BodyPart.LEGS);
@@ -105,27 +111,6 @@ public class LivingRendererMixin<T extends LivingEntity, M extends EntityModel<T
             model.jacket.visible = model.jacket.visible && model.body.visible;
             model.head.visible = model.head.visible && !data.hiddenParts.contains((Object)BodyPart.HEAD);
             model.hat.visible = model.hat.visible && model.head.visible;
-        }
-    }
-
-    @Inject(at={@At(value="TAIL")}, method={"render"}, cancellable=false)
-    private void renderPost(T entity, float p_115309_, float p_115310_, PoseStack p_115311_, MultiBufferSource p_115312_, int p_115313_, CallbackInfo cb) {
-        LivingEntityRenderer r = (LivingEntityRenderer)(Object)this;
-        if (entity instanceof AbstractClientPlayer && r.getModel() instanceof PlayerModel) {
-            PlayerModel model = (PlayerModel)r.getModel();
-            this.restoreMpmTransforms();
-            model.leftLeg.visible = this.leftLegVisible;
-            model.rightLeg.visible = this.rightLegVisible;
-            model.leftArm.visible = this.leftArmVisible;
-            model.rightArm.visible = this.rightArmVisible;
-            model.leftPants.visible = this.leftPantsVisible;
-            model.rightPants.visible = this.rightPantsVisible;
-            model.leftSleeve.visible = this.leftSleeveVisible;
-            model.rightSleeve.visible = this.rightSleeveVisible;
-            model.body.visible = this.bodyVisible;
-            model.jacket.visible = this.jacketVisible;
-            model.head.visible = this.headVisible;
-            model.hat.visible = this.hatVisible;
         }
     }
 
@@ -150,10 +135,8 @@ public class LivingRendererMixin<T extends LivingEntity, M extends EntityModel<T
             model.hat, model.jacket, model.leftSleeve, model.rightSleeve, model.leftPants, model.rightPants
         };
         EnumParts[] types = new EnumParts[]{EnumParts.HEAD, EnumParts.BODY, EnumParts.ARM_LEFT, EnumParts.ARM_RIGHT, EnumParts.LEG_LEFT, EnumParts.LEG_RIGHT};
-        this.mpmPartStates = new ModelPartState[parts.length];
         for (int i = 0; i < parts.length; ++i) {
             ModelPart part = parts[i];
-            this.mpmPartStates[i] = ModelPartState.capture(part);
             if (i < types.length) {
                 var config = data.getPartConfig(types[i]);
                 part.x += config.transX * 16.0f;
@@ -178,25 +161,4 @@ public class LivingRendererMixin<T extends LivingEntity, M extends EntityModel<T
         }
     }
 
-    private void restoreMpmTransforms() {
-        if (this.mpmPartStates == null) {
-            return;
-        }
-        for (ModelPartState state : this.mpmPartStates) {
-            state.restore();
-        }
-        this.mpmPartStates = null;
-    }
-
-    private record ModelPartState(ModelPart part, float x, float y, float z) {
-        private static ModelPartState capture(ModelPart part) {
-            return new ModelPartState(part, part.x, part.y, part.z);
-        }
-
-        private void restore() {
-            this.part.x = this.x;
-            this.part.y = this.y;
-            this.part.z = this.z;
-        }
-    }
 }

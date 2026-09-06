@@ -278,6 +278,10 @@ public class ClientEventHandler {
             MorePlayerModels.HasServerSide = false;
             this.prevWorld = mc.level;
         }
+        // Camera height is persistent client state, independent of whether a hand/body is rendered.
+        ModelData cameraData = ModelData.get(mc.player);
+        ((noppes.mpm.mixin.EntityMixin)mc.player).setEyeHeight(
+                mc.player.getEyeHeight(mc.player.getPose()) - cameraData.getOffsetCamera(mc.player));
         ++SkinUtil.lastSkinTick;
         if (mc.level.getLevelData().getGameTime() % 20L == 0L) {
             playerList = mc.level.players().stream().filter(playerSelector).collect(Collectors.toList());
